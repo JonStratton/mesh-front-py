@@ -27,6 +27,8 @@ sudo apt-get install -y \
 sudo groupadd $myname
 
 # 3. Add sudo access to group
+sudo cp install/sudoers /etc/sudoers.d/mesh-front
+sudo chmod 440 /etc/sudoers.d/mesh-front
 
 # 4. Add group to running user
 sudo usermod -a -G $myname `whoami`
@@ -61,6 +63,7 @@ done
 sudo apt-get remove -y \
 	python-flask \
 	olsrd
+sudo sudo apt autoremove -y
 
 # 2. Create Group if it doesnt exist
 if [ `grep $myname /etc/group` ]
@@ -68,7 +71,8 @@ then
    sudo groupdel $myname
 fi
 
-# 3. Add sudo access to group
+# 3. remove access to group
+sudo rm /etc/sudoers.d/mesh-front
 }
 
 ########

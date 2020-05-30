@@ -1,0 +1,2 @@
+Cmnd_Alias MESHFRONT = /sbin/iwlist * scan, /bin/ls
+%mesh-front ALL=NOPASSWD: MESHFRONT
