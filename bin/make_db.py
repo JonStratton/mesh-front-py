@@ -18,6 +18,7 @@ c.execute('DROP TABLE user_settings;')
 c.execute('DROP TABLE interface_settings;')
 c.execute('DROP TABLE mesh_settings;')
 c.execute('DROP TABLE server_settings;')
+c.execute('DROP TABLE service_settings;')
 
 # Admin passwd table
 c.execute('CREATE TABLE user_settings (username text, password_hash text);')
@@ -25,7 +26,7 @@ c.execute('INSERT INTO user_settings VALUES (\'admin\', ?);', (password_hash,) )
 #c.execute('UPDATE user_settings SET password_hash = ? WHERE username = \'admin\';', (password_hash,) )
 
 # Settings for each interface
-c.execute('CREATE TABLE interface_settings (interface text, ip text, netmask text, enabled integer, dhcp_client integer, dhcp_server integer)')
+c.execute('CREATE TABLE interface_settings (interface text, ip text, netmask text, gateway text, dns1 text, dns2 text, type text, enabled integer, dhcp_client integer, dhcp_server integer)')
 #c.execute('INSERT INTO interface_settings VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (,) )
 
 # Settings for the mesh network: interface, key
