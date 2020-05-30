@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import os, re, subprocess, socket
+import os, re, subprocess, socket, hashlib
 
 net_fs = '/sys/class/net'
 
@@ -67,3 +67,7 @@ def get_bg_by_string(base, bit_groups_count):
         total = int(total / 1000)
 
     return(bit_groups[::-1])
+
+def hash_password(password, salt=''):
+    salted_password = password+salt
+    return(hashlib.md5(salted_password.encode()))
