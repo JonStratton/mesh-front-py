@@ -42,6 +42,10 @@ do
       sudo chmod g+w $system_file
    fi
 done
+
+# 6. Make db defaulting with current settings
+python bin/make_db.py
+
 }
 
 #############

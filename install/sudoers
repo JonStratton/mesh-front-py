@@ -1,2 +1,4 @@
-Cmnd_Alias MESHFRONT = /sbin/iwlist * scan, /bin/ls
+# Created by mesh-front-py
+# Moved to /etc/sudoers.d/
+Cmnd_Alias MESHFRONT = /sbin/iwlist * scan, /usr/sbin/iptables, /usr/sbin/halt, /usr/sbin/reboot
 %mesh-front ALL=NOPASSWD: MESHFRONT
