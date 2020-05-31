@@ -1,0 +1,13 @@
+[Unit]
+Description=Mesh Front Service
+After=network.target
+
+[Service]
+Type=simple
+Group=mesh-front
+WorkingDirectory=/var/www/mesh-front-py/
+ExecStart=/var/www/mesh-front-py/web/mesh_front.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

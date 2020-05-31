@@ -26,14 +26,10 @@ sudo apt-get install -y \
 # 2. Create Group if it doesnt exist
 sudo groupadd $myname
 
-# 3. Add sudo access to group
-sudo cp install/sudoers /etc/sudoers.d/mesh-front
-sudo chmod 440 /etc/sudoers.d/mesh-front
-
-# 4. Add group to running user
+# 3. Add group to running user
 sudo usermod -a -G $myname `whoami`
 
-# 5. Open System files to group
+# 4. Open System files to group
 for system_file in $system_files
 do
    if [ -e $system_file ]
@@ -43,9 +39,13 @@ do
    fi
 done
 
+# 5. Add sudo access to group, and other generic install files
+sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
+sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
+sudo cp install/olsrd /etc/default/olsrd
+
 # 6. Make db defaulting with current settings
 python bin/make_db.py
-
 }
 
 #############
@@ -76,7 +76,46 @@ then
 fi
 
 # 3. remove access to group
-sudo rm /etc/sudoers.d/mesh-front
+sudo rm /etc/sudoers.d/mesh-front-sudoers
+}
+
+##################
+# Install System #
+##################
+install_mesh_front_system()
+{
+# Create location in /var and copy files too it
+sudo mkdir -p /var/www/mesh-front-py/
+sudo cp -r . /var/www/mesh-front-py/
+
+# Make sure the permissions are good
+sudo chown -R root:root /var/www/mesh-front-py/
+sudo chmod -R go-w /var/www/mesh-front-py/
+sudo chown :mesh-front /var/www/mesh-front-py/db.sqlite3
+sudo chmod g+w /var/www/mesh-front-py/db.sqlite3
+
+# Install service
+sudo cp install/mesh-front.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start mesh-front.service
+sudo systemctl enable mesh-front.service
+}
+
+####################
+# Uninstall System #
+####################
+uninstall_mesh_front_system()
+{
+# Stop Service and uninstall
+sudo systemctl stop mesh-front.service
+sudo systemctl disable mesh-front.service
+sudo rm /etc/systemd/system/mesh-front.service
+
+# Remove base directory
+sudo rm -rf /var/www/mesh-front-py/
+
+# Generic Warning about OLSR still possibly running.
+echo "Warning, mesh network services are still installed and enables. Run 'uninstall' to remove those too."
 }
 
 ########
@@ -89,7 +128,7 @@ mycwd=`pwd`
 cd `dirname $0`/test
 
 # 2. run tests
-python -m unittest -v mesh_front_util_test.TestSimpleUtils
+python -m unittest -v mesh_front_util_test.TestUtils
 
 # 3. cd back
 cd $mycwd
@@ -101,13 +140,20 @@ cd $mycwd
 
 if [ $1 ]
 then
-   if [ $1 = "uninstall" ]
-   then
-      uninstall_mesh_front
-   elif [ $1 = "test" ]
-   then
-      test_mesh_front
-   fi
+   case $1 in
+      uninstall)
+         uninstall_mesh_front
+      ;;
+      system)
+         install_mesh_front_system
+      ;;
+      uninstallsystem)
+         uninstall_mesh_front_system
+      ;;
+      test)
+         test_mesh_front
+      ;;
+   esac
 else
    install_mesh_front
    test_mesh_front

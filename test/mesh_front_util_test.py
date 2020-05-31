@@ -9,7 +9,6 @@ import mesh_front_db as mfdb
 
 class TestTemplates(unittest.TestCase):
     "TODO"
-    def test
 
 class TestSudoCommands(unittest.TestCase):
     "TODO"
