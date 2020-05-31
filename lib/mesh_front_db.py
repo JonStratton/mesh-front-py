@@ -15,6 +15,13 @@ def set_setting(setting, value):
     conn.commit()
     return(0)
 
+def create_user(username, password_hash):
+    conn = sqlite3.connect('db.sqlite3')
+    c = conn.cursor()
+    c.execute('INSERT INTO user_settings VALUES (?, ?);', (username, password_hash) )
+    conn.commit()
+    return(0)
+
 def user_auth(user, pass_hash):
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
