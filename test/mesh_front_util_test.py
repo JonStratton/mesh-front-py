@@ -5,6 +5,11 @@ run_dir = os.path.dirname(os.path.realpath(__file__))
 lib_loc = os.path.realpath('%s/../lib/' % run_dir)
 sys.path.insert(1, lib_loc)
 import mesh_front_util as mfu
+import mesh_front_db as mfdb
+
+class TestTemplates(unittest.TestCase):
+    "TODO"
+    def test
 
 class TestSudoCommands(unittest.TestCase):
     "TODO"
@@ -15,7 +20,15 @@ class TestSudoCommands(unittest.TestCase):
     #        for key in network:
     #            print('%s: %s' % (key, network[key]))
 
-class TestSimpleUtils(unittest.TestCase):
+
+class TestDB(unittest.TestCase):
+    "TODO"
+    #def test_settings(self):
+    #    listen_port = mfdb.get_setting('listen_port')
+    #    print('Listen Port: %s' % (listen_port))
+    #    self.assertTrue(listen_port)
+
+class TestUtils(unittest.TestCase):
     def test_interfaces(self):
         interfaces = mfu.get_interfaces()
         self.assertTrue(interfaces)

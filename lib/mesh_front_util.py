@@ -33,6 +33,16 @@ def get_available_networks(interface):
     net_list.append(network)
     return net_list
 
+def do_reboot():
+    cmd = 'sudo reboot'
+    code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(code)
+
+def do_halt():
+    cmd = 'sudo halt -p now'
+    code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(code)
+
 def set_interface_state(interface, state):
     cmd = 'ip link set %s %s' % (interface, state)
     code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
@@ -49,6 +59,7 @@ def set_hostname(hostname):
     return(code)
 
 def get_neighbors():
+    # TODO
     return(0)
 
 def get_bg_by_string(base, bit_groups_count):
