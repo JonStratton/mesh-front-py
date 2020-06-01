@@ -29,9 +29,9 @@ class TestDB(unittest.TestCase):
 
 class TestUtils(unittest.TestCase):
     def test_interfaces(self):
-        interfaces = mfu.get_interfaces()
+        interfaces = mfu.get_interface_list()
         self.assertTrue(interfaces)
-        for interface in mfu.get_interfaces():
+        for interface in interfaces:
             interface_state = mfu.get_interface_state(interface)
             self.assertTrue(interface_state)
             #print('Interface: %s(%s)' % (interface, interface_state))

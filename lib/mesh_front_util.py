@@ -5,7 +5,7 @@ import os, re, subprocess, socket, hashlib
 net_fs = '/sys/class/net'
 
 # List the connected network interfaces.
-def get_interfaces():
+def get_interface_list():
     return os.listdir(net_fs)
 
 def get_interface_state(interface):
@@ -13,6 +13,30 @@ def get_interface_state(interface):
     with open('%s/%s/operstate' % (net_fs, interface), 'r') as f:
         if_state = f.readline().replace('\n', '')
     return if_state
+
+def get_interface_settings():
+    interfaces = []
+    interface  = {}
+    split_col = re.compile('\s+')
+    with open('/etc/network/interfaces', 'r') as f: # TODO, read the interfaces.d dir too
+        for line in f:
+            line = line.replace('\n', '').strip()
+            if (not line) or (line.startswith('#')):
+               continue
+            elif (line.startswith('auto ')) or (line.startswith('source ')) or (line.startswith('allow-hotplug ')):
+               continue # I just dont care about these right now
+            if (line.startswith('iface ')):
+               #New Interface. Add it to our list and start another
+               if (interface):
+                   interfaces.append(interface)
+               interface = {}
+            split = split_col.split(line)
+            interface[split[0]] = split[1]
+            if (len(split) > 3):
+               interface[split[2]] = split[3]
+    if (interface):
+        interfaces.append(interface)
+    return(interfaces)
 
 def get_available_networks(interface):
     net_list = []
