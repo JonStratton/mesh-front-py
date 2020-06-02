@@ -26,9 +26,25 @@ def set_interface(interface):
 
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
-    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?);', (iface, netmask, address, inet, wireless_mode, wireless_channel, wireless_essid))
+    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?);', (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel))
     conn.commit()
     return(0)
+
+def get_interfaces():
+    conn = sqlite3.connect('db.sqlite3')
+    c = conn.cursor()
+    c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
+    columns = list(map(lambda x: x[0], c.description))
+    columns_length = len(columns)
+    
+    records = []
+    for row in c.fetchall():
+        record = {}
+        for col_num in range(0, columns_length):
+            record[columns[col_num]] = row[col_num]
+        records.append(record)
+
+    return(records)
 
 def create_user(username, password_hash):
     conn = sqlite3.connect('db.sqlite3')

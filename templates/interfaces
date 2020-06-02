@@ -1,0 +1,13 @@
+
+auto {{iface}}
+iface {{iface}} inet {{inet}}{%if address%}
+    address {{address}}
+{% endif %}{%if netmask%}
+    netmask {{netmask}}
+{% endif %}{%if wireless_mode%}
+    wireless-mode {{wireless_mode}}
+{% endif %}{%if wireless_channel%}
+    wireless-channel {{wireless_channel}}
+{% endif %}{%if wireless_essid%}
+    wireless-essid {{wireless_essid}}
+{% endif %}
