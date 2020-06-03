@@ -1,13 +1,12 @@
+# Created by mesh-front-py
+# Moved to /etc/network/interfaces
 
-auto {{iface}}
-iface {{iface}} inet {{inet}}{%if address%}
-    address {{address}}
-{% endif %}{%if netmask%}
-    netmask {{netmask}}
-{% endif %}{%if wireless_mode%}
-    wireless-mode {{wireless_mode}}
-{% endif %}{%if wireless_channel%}
-    wireless-channel {{wireless_channel}}
-{% endif %}{%if wireless_essid%}
-    wireless-essid {{wireless_essid}}
-{% endif %}
+{% for iface in ifaces %}
+{% if iface.iface != 'default' %}auto {{iface.iface}}{% endif %}
+iface {{iface.iface}} inet {{iface.inet}}
+{%if iface.address%}    address {{iface.address}}{% endif %}
+{%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
+{%if iface.wireless_mode%}    wireless-mode {{iface.wireless_mode}}{% endif %}
+{%if iface.wireless_channel%}    wireless-channel {{iface.wireless_channel}}{% endif %}
+{%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
+{% endfor %}

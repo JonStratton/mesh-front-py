@@ -1,0 +1,10 @@
+{% block body %}
+
+<table border=1>
+<tr><th>ESSID</th><th>Channel</th></tr>
+{% for network in networks %}
+<tr><td>{{ network.ESSID }}</td><td>{{ network.Channel }}</td></tr>
+{% endfor %}
+</table>
+
+{% endblock %}

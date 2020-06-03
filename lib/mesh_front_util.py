@@ -5,8 +5,13 @@ import os, re, subprocess, socket, hashlib
 net_fs = '/sys/class/net'
 
 # List the connected network interfaces.
-def get_interface_list():
-    return os.listdir(net_fs)
+def get_interface_list(if_type):
+    if_list = []
+    for iface in os.listdir(net_fs):
+        if (if_type) and (not iface.startswith(if_type)):
+            continue
+        if_list.append(iface)
+    return(if_list)
 
 def get_interface_state(interface):
     if_state = '';

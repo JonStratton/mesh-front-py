@@ -10,13 +10,17 @@ import mesh_front_util as mfu
 import mesh_front_db as mfdb
 
 # Default from db, but overwrite port if called as an arg
-#conn = sqlite3.connect('db.sqlite3')
-#c = conn.cursor()
 port = mfdb.get_setting('listen_port')
 ip   = mfdb.get_setting('listen_ip')
 if (len(sys.argv) >= 2):
     port = sys.argv[1]
 app = Flask(__name__) 
+
+@app.route('/scan')
+def scan():
+   wiface   = mfu.get_interface_list('w')[0]
+   networks = mfu.get_available_networks(wiface)
+   return render_template('scan.html', networks=networks)
 
 @app.route('/')
 def home():

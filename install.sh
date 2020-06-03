@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/default/olsrd"
+system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/default/olsrd /etc/iptables/rules.v4"
 
 ###########
 # Install #
@@ -21,7 +21,8 @@ done
 sudo apt-get update
 sudo apt-get install -y \
 	python-flask \
-	olsrd
+	olsrd \
+	iptables-persistent
 
 # 2. Create Group if it doesnt exist
 sudo groupadd $myname
@@ -73,7 +74,8 @@ done
 # 1. Install dependancies
 sudo apt-get remove --purge -y \
 	python-flask \
-	olsrd
+	olsrd \
+	iptables-persistent
 sudo sudo apt autoremove -y
 
 # 2. Create Group if it doesnt exist
