@@ -30,7 +30,7 @@ def set_interface(interface):
     conn.commit()
     return(0)
 
-def get_interface_configs(interface):
+def get_interface_configs(interface = None):
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
     if (interface):

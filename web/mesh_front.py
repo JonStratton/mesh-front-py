@@ -8,6 +8,7 @@ lib_loc = os.path.realpath('%s/../lib/' % run_dir)
 sys.path.insert(1, lib_loc )
 import mesh_front_util as mfu
 import mesh_front_db as mfdb
+import mesh_front_template as mft
 
 # Default from db, but overwrite port if called as an arg
 port = mfdb.get_setting('listen_port')
@@ -27,6 +28,10 @@ def if_config():
             interface_update[key] = request.values.get(key)
         mfdb.set_interface(interface_update)
 
+        # Update the config files on the system
+        interfaces = mfdb.get_interface_configs()
+        mft.make_interface_config(interfaces)
+
     # If we have an interface, only get it
     interface = None
     if (request.values.get('interface')):
@@ -37,9 +42,7 @@ def if_config():
 @app.route('/scan')
 def scan():
    # TODO, check Auth
-   wiface   = mfu.get_interface_list('w')[0]
-   # TODO, check if IF is up before scanning
-   networks = mfu.get_available_networks(wiface)
+   networks = mfu.get_available_networks()
    return render_template('scan.html', networks=networks)
 
 @app.route('/')

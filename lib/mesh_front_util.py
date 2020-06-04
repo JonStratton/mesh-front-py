@@ -43,7 +43,17 @@ def get_interface_settings():
         interfaces.append(interface)
     return(interfaces)
 
-def get_available_networks(interface):
+def get_available_networks(interface = None):
+    # TODO, if no interface passed in, try to find an on one first
+    # if no interface, get the first one
+    interface = get_interface_list('w')[0]
+
+    # If the interface isnt up, brink it up
+    if_upd = 0
+    if (get_interface_state(interface) != 'up'):
+        set_interface_state(interface, 'up')
+        if_upd = 1
+
     net_list = []
     network  = {}
     split_col = re.compile('\s*:\s*')
@@ -60,6 +70,11 @@ def get_available_networks(interface):
        network[key] = value
     retval = p.wait
     net_list.append(network)
+
+    # Take down interface if it was set up
+    if (if_upd):
+        set_interface_state(interface, 'up')
+
     return net_list
 
 def do_reboot():
@@ -73,7 +88,7 @@ def do_halt():
     return(code)
 
 def set_interface_state(interface, state):
-    cmd = 'ip link set %s %s' % (interface, state)
+    cmd = 'sudo ip link set %s %s' % (interface, state)
     code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
     return(code)
 
@@ -81,7 +96,7 @@ def get_hostname():
     return(socket.gethostname())
 
 def set_hostname(hostname):
-    cmd = 'hostname %s' % (hostname)
+    cmd = 'sudo hostname %s' % (hostname)
     code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
 
     # TODO, /etc/hosts
