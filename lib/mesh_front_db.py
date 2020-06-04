@@ -30,10 +30,13 @@ def set_interface(interface):
     conn.commit()
     return(0)
 
-def get_interface_configs():
+def get_interface_configs(interface):
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
-    c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
+    if (interface):
+        c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ?;', (interface, ))
+    else:
+        c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
     columns = list(map(lambda x: x[0], c.description))
     columns_length = len(columns)
     

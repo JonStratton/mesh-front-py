@@ -16,6 +16,15 @@ if (len(sys.argv) >= 2):
     port = sys.argv[1]
 app = Flask(__name__) 
 
+@app.route('/if_config', methods=['GET', 'POST'])
+def if_config():
+    # If we have an interface, only get it
+    interface = None
+    if (request.values.get('interface')):
+        interface = request.values.get('interface')
+    if_configs = mfdb.get_interface_configs(interface)
+    return render_template('if_config.html', ifaces=if_configs)
+
 @app.route('/scan')
 def scan():
    wiface   = mfu.get_interface_list('w')[0]
