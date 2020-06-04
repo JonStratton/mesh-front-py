@@ -25,11 +25,9 @@ password_hash = mfu.hash_password(password).hexdigest()
 conn = sqlite3.connect(db_file)
 c = conn.cursor()
 
-# Admin passwd table
-c.execute('CREATE TABLE user_settings (username text, password_hash text);')
-# Settings for each interface
-c.execute('CREATE TABLE interface_settings (iface text, inet text, address text, netmask text, wireless_mode text, wireless_essid text, wireless_channel text)')
-c.execute('CREATE TABLE server_settings (key text, value text);')
+c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
+c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_mode text, wireless_essid text, wireless_channel text)')
+c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
 conn.commit()
 conn.close()
 

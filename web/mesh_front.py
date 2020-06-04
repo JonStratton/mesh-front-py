@@ -18,6 +18,15 @@ app = Flask(__name__)
 
 @app.route('/if_config', methods=['GET', 'POST'])
 def if_config():
+    # TODO, check Auth
+
+    # If an Interface is passed in, update it
+    if (request.values.get('iface')):
+        interface_update = {}
+        for key in request.values:
+            interface_update[key] = request.values.get(key)
+        mfdb.set_interface(interface_update)
+
     # If we have an interface, only get it
     interface = None
     if (request.values.get('interface')):
@@ -27,7 +36,9 @@ def if_config():
 
 @app.route('/scan')
 def scan():
+   # TODO, check Auth
    wiface   = mfu.get_interface_list('w')[0]
+   # TODO, check if IF is up before scanning
    networks = mfu.get_available_networks(wiface)
    return render_template('scan.html', networks=networks)
 

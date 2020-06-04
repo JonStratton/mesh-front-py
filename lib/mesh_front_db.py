@@ -26,7 +26,7 @@ def set_interface(interface):
 
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
-    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?);', (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel))
+    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel))
     conn.commit()
     return(0)
 
