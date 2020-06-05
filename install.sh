@@ -40,12 +40,7 @@ sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
 sudo cp install/olsrd /etc/default/olsrd
 
-# 5. Make db defaulting with current settings.
-#    make_config.py probably needs to be done as root until our new group is available
-python bin/make_db.py
-sudo python bin/make_config.py
-
-# 6. Open System files to group
+# 5. Open System files to group
 for system_file in $system_files
 do
    if [ -e $system_file ]
@@ -132,15 +127,7 @@ echo "Warning, mesh network services are still installed and enables. Run 'unins
 ########
 test_mesh_front()
 {
-# 1. Cache cwd and cd into test dir
-mycwd=`pwd`
-cd `dirname $0`/test
-
-# 2. run tests
-python -m unittest -v mesh_front_util_test.TestUtils
-
-# 3. cd back
-cd $mycwd
+python -m unittest -v mesh_front_lib_test.TestUtils
 }
 
 ########

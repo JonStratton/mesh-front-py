@@ -3,6 +3,7 @@ __author__ = 'Jon Stratton'
 import os, re, subprocess, socket, hashlib
 
 net_fs = '/sys/class/net'
+net_ifaces = '/etc/network/interfaces'
 
 # List the connected network interfaces.
 def get_interface_list(if_type):
@@ -23,7 +24,7 @@ def get_interface_settings():
     interfaces = []
     interface  = {}
     split_col = re.compile('\s+')
-    with open('/etc/network/interfaces', 'r') as f: # TODO, read the interfaces.d dir too
+    with open(net_ifaces, 'r') as f: # TODO, read the interfaces.d dir too
         for line in f:
             line = line.replace('\n', '').strip()
             if (not line) or (line.startswith('#')):
@@ -36,6 +37,7 @@ def get_interface_settings():
                    interfaces.append(interface)
                interface = {}
             split = split_col.split(line)
+            split[0] = split[0].replace('-', '_') # Remove the dashes for sqlite col name
             interface[split[0]] = split[1]
             if (len(split) > 3):
                interface[split[2]] = split[3]
@@ -44,8 +46,9 @@ def get_interface_settings():
     return(interfaces)
 
 def get_available_networks(interface = None):
-    # TODO, if no interface passed in, try to find an on one first
-    # if no interface, get the first one
+    net_list = []
+
+    # Id no interface is passed in, get the first ip one
     interface = get_interface_list('w')[0]
 
     # If the interface isnt up, brink it up
@@ -54,7 +57,6 @@ def get_available_networks(interface = None):
         set_interface_state(interface, 'up')
         if_upd = 1
 
-    net_list = []
     network  = {}
     split_col = re.compile('\s*:\s*')
     cmd = 'sudo iwlist %s scan' % (interface)
@@ -106,6 +108,7 @@ def get_neighbors():
     # TODO
     return(0)
 
+# Used for generating an IP off of a hostname
 def get_bg_by_string(base, bit_groups_count):
     # Build a long number based on string
     total  = 0
@@ -122,6 +125,7 @@ def get_bg_by_string(base, bit_groups_count):
         total = int(total / 1000)
 
     return(bit_groups[::-1])
+
 
 def hash_password(password, salt=''):
     salted_password = password+salt

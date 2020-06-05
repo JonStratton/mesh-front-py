@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
 import sys, os, unittest
-run_dir = os.path.dirname(os.path.realpath(__file__))
-lib_loc = os.path.realpath('%s/../lib/' % run_dir)
-sys.path.insert(1, lib_loc)
+sys.path.insert(1, 'lib/')
 import mesh_front_util as mfu
 import mesh_front_db as mfdb
 

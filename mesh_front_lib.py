@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
 import sqlite3
+from jinja2 import Environment, FileSystemLoader
+import mesh_front_util as mfu
+
+# Defaults
+db_file  = 'db.sqlite3'
+env = Environment(loader=FileSystemLoader('templates'))
+
+######
+# DB #
+######
 
 def get_setting(setting):
     conn = sqlite3.connect('db.sqlite3')
@@ -20,9 +30,9 @@ def set_interface(interface):
     netmask = interface.get('netmask', '')
     address = interface.get('address', '')
     inet    = interface.get('inet', '')
-    wireless_mode    = interface.get('wireless-mode', '')
-    wireless_channel = interface.get('wireless-channel', '')
-    wireless_essid   = interface.get('wireless-essid', '')
+    wireless_mode    = interface.get('wireless_mode', '')
+    wireless_channel = interface.get('wireless_channel', '')
+    wireless_essid   = interface.get('wireless_essid', '')
 
     conn = sqlite3.connect('db.sqlite3')
     c = conn.cursor()
@@ -61,3 +71,46 @@ def user_auth(user, pass_hash):
     c = conn.cursor()
     c.execute('SELECT count(*) FROM user_settings WHERE username=? AND password_hash=?;', (user, pass_hash))
     return(c.fetchone()[0])
+
+#############
+# Templates #
+#############
+
+def make_interface_config(interfaces):
+    config_file = '/etc/network/interfaces'
+
+    template = env.get_template('interfaces')
+    output_from_parsed_template = template.render(ifaces=interfaces)
+
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
+
+#########
+# Setup #
+#########
+
+def setup_db():
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
+    c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_mode text, wireless_essid text, wireless_channel text)')
+    c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
+    conn.commit()
+    conn.close()
+    return(0)
+
+def setup_initial_settings(password):
+    # Set some server configs we have
+    mfdb.set_setting('hostname', mfu.get_hostname())
+    mfdb.set_setting('listen_port', '8080')
+    mfdb.set_setting('listen_ip', '0.0.0.0')
+
+    # Pull in current interface settings
+    for interface in mfu.get_interface_settings():
+        mfdb.set_interface(interface)
+
+    # Create admin user
+    password_hash = mfu.hash_password(password).hexdigest()
+    mfdb.create_user('admin', password_hash)
+    return(0)
