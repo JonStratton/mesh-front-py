@@ -6,7 +6,7 @@ net_fs = '/sys/class/net'
 net_ifaces = '/etc/network/interfaces'
 
 # List the connected network interfaces.
-def get_interface_list(if_type):
+def get_interface_list(if_type = None):
     if_list = []
     for iface in os.listdir(net_fs):
         if (if_type) and (not iface.startswith(if_type)):
