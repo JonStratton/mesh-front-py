@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import sqlite3
+import sqlite3, os, re, subprocess, socket, hashlib
 from jinja2 import Environment, FileSystemLoader
-import mesh_front_util as mfu
 
 # Defaults
 db_file  = 'db.sqlite3'
@@ -18,7 +17,7 @@ def mesh_get_defaults(wifi_network):
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
     mesh['inet'] = 'static'
-    mesh['address'] = '10.%s' % '.'.join(mfu.get_bg_by_string(mfu.get_hostname(), 3))
+    mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
     mesh['netmask'] = '255.0.0.0'
     return(mesh)
 
@@ -26,20 +25,20 @@ def mesh_get_defaults(wifi_network):
 # DB #
 ######
 
-def get_setting(setting):
-    conn = sqlite3.connect('db.sqlite3')
+def query_setting(setting):
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('SELECT value FROM server_settings WHERE key=?;', (setting,))
     return(c.fetchone()[0])
 
-def set_setting(setting, value):
-    conn = sqlite3.connect('db.sqlite3')
+def upsert_setting(setting, value):
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('INSERT INTO server_settings (key, value) VALUES (?, ?);', (setting, value))
     conn.commit()
     return(0)
 
-def set_interface(interface):
+def upsert_interface(interface):
     iface   = interface.get('iface', '')
     netmask = interface.get('netmask', '')
     address = interface.get('address', '')
@@ -48,14 +47,14 @@ def set_interface(interface):
     wireless_channel = interface.get('wireless_channel', '')
     wireless_essid   = interface.get('wireless_essid', '')
 
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel))
     conn.commit()
     return(0)
 
-def get_interface_configs(interface = None):
-    conn = sqlite3.connect('db.sqlite3')
+def query_interface_settings(interface = None):
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     if (interface):
         c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ?;', (interface, ))
@@ -74,17 +73,134 @@ def get_interface_configs(interface = None):
     return(records)
 
 def create_user(username, password_hash):
-    conn = sqlite3.connect('db.sqlite3')
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('INSERT INTO user_settings VALUES (?, ?);', (username, password_hash) )
     conn.commit()
     return(0)
 
-def user_auth(user, pass_hash):
-    conn = sqlite3.connect('db.sqlite3')
+def user_auth(user, password_hash):
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('SELECT count(*) FROM user_settings WHERE username=? AND password_hash=?;', (user, pass_hash))
+    c.execute('SELECT count(*) FROM user_settings WHERE username=? AND password_hash=?;', (user, password_hash))
     return(c.fetchone()[0])
+
+##########
+# System #
+##########
+    # Mostly our interaction with the system, minus the templating
+
+def system_hostname(new_hostname = None):
+    if (new_hostname):
+        return(0) # TODO
+    else:
+        return(socket.gethostname())
+
+def system_reboot():
+    cmd = 'sudo reboot'
+    code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(code)
+
+def system_set_interface_state(interface, state):
+    cmd = 'sudo ip link set %s %s' % (interface, state)
+    code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(code)
+
+def system_get_interface_state(interface):
+    if_state = '';
+    with open('/sys/class/net/%s/operstate' % (interface), 'r') as f:
+        if_state = f.readline().replace('\n', '')
+    return if_state
+
+# List the connected network interfaces.
+def system_interfaces(if_type = None):
+    if_list = []
+    for iface in os.listdir('/sys/class/net'):
+        if (if_type) and (not iface.startswith(if_type)):
+            continue
+        if_list.append(iface)
+    return(if_list)
+
+#############################
+# System Interface Settings #
+#############################
+    # TODO, read the interfaces.d dir too
+
+def system_interface_settings():
+    interfaces = []
+    interface  = {}
+    split_col = re.compile('\s+')
+    with open('/etc/network/interfaces', 'r') as f:
+        for line in f:
+            line = line.replace('\n', '').strip()
+            if (not line) or (line.startswith('#')):
+               continue
+            elif (line.startswith('auto ')) or (line.startswith('source ')) or (line.startswith('allow-hotplug ')):
+               continue # I just dont care about these right now
+            if (line.startswith('iface ')):
+               #New Interface. Add it to our list and start another
+               if (interface):
+                   interfaces.append(interface)
+               interface = {}
+            split = split_col.split(line)
+            split[0] = split[0].replace('-', '_') # Remove the dashes for sqlite col name
+            interface[split[0]] = split[1]
+            if (len(split) > 3):
+               interface[split[2]] = split[3]
+    if (interface):
+        interfaces.append(interface)
+
+    # For now, just dont load lo and default
+    interfaces_custom = []
+    for interface in interfaces:
+        iface = interface.get('iface')
+        if (iface == 'lo' or iface == 'default'):
+            continue
+        interfaces_custom.append(interface)
+
+    return(interfaces_custom)
+
+########################
+# System Wifi Networks #
+########################
+    # TODO, clean this function up
+
+def system_wifi_networks(interface = None):
+    net_list = []
+
+    # Id no interface is passed in, get the first ip one
+    interface = system_interfaces('w')[0]
+
+    # If the interface isnt up, brink it up
+    if_upd = 0
+    if (system_get_interface_state(interface) != 'up'):
+        system_set_interface_state(interface, 'up')
+        if_upd = 1
+
+    network  = {}
+    split_col = re.compile('\s*:|=\s*')
+    cmd = 'sudo iwlist %s scan' % (interface)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in p.stdout.readlines():
+        if (line.startswith(interface)):
+            continue
+        split_line = split_col.split( line.decode('utf-8') )
+        key = split_line[0].strip()
+        value = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
+        if key.endswith('Address'): # New record found
+            key = 'Address'
+            if (network):
+                net_list.append(network)
+                network = {}
+        network[key] = value
+    retval = p.wait
+    net_list.append(network)
+
+    # Take down interface if it was set up
+    if (if_upd):
+        system_set_interface_state(interface, 'up')
+
+    return net_list
 
 #############
 # Templates #
@@ -127,16 +243,41 @@ def setup_db():
 
 def setup_initial_settings(password):
     # Set some server configs we have
-    set_setting('hostname', mfu.get_hostname())
-    set_setting('listen_port', '8080')
-    set_setting('listen_ip', '0.0.0.0')
+    upsert_setting('hostname', system_hostname())
+    upsert_setting('listen_port', '8080')
+    upsert_setting('listen_ip', '0.0.0.0')
 
     # Pull in current interface settings
-    print(mfu.get_interface_settings())
-    for interface in mfu.get_interface_settings():
-        set_interface(interface)
+    for interface in system_interface_settings():
+        upsert_interface(interface)
 
     # Create admin user
-    password_hash = mfu.hash_password(password).hexdigest()
+    password_hash = hash_password(password).hexdigest()
     create_user('admin', password_hash)
     return(0)
+
+##############
+# Misc Utils #
+##############
+
+# Used for generating an IP off of a hostname
+def get_bg_by_string(base, bit_groups_count):
+    # Build a long number based on string
+    total  = 0
+    offset = 1
+    for c in base[::-1]:
+        total = total + (ord(c) * offset)
+        offset = offset * 10
+
+    # Pull X 3 digit chunks off and mod them by max size
+    bit_groups = []
+    offset = 255
+    for bg in range(0, bit_groups_count):
+        bit_groups.append(str(total % 256))
+        total = int(total / 1000)
+
+    return(bit_groups[::-1])
+
+def hash_password(password, salt=''):
+    salted_password = password+salt
+    return(hashlib.md5(salted_password.encode()))

@@ -3,7 +3,6 @@ __author__ = 'Jon Stratton'
 import sys, os, sqlite3
 from flask import Flask, flash, redirect, render_template, request, session, abort
 import mesh_front_lib as mfl
-import mesh_front_util as mfu
 
 app = Flask(__name__)
 
@@ -17,17 +16,17 @@ def if_config():
             interface_update = {}
             for key in request.values:
                 interface_update[key] = request.values.get(key)
-            mfl.set_interface(interface_update)
+            mfl.upsert_interface(interface_update)
 
             # Update the config files on the system
-            interfaces = mfl.get_interface_configs()
+            interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces)
 
         # If we have an interface, only get it
         interface = None
         if (request.values.get('interface')):
             interface = request.values.get('interface')
-        if_configs = mfl.get_interface_configs(interface)
+        if_configs = mfl.query_interface_settings(interface)
         return render_template('ifconfig.html', ifaces=if_configs)
 
 @app.route('/scan')
@@ -35,7 +34,7 @@ def scan():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
-        networks = mfu.get_available_networks()
+        networks = mfl.system_wifi_networks()
         return render_template('scan.html', networks=networks)
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -52,14 +51,18 @@ def mesh():
     #else:
         mesh = {}
         if (request.values.get('save')):
-            mfl.set_interface(request.values) # Save interface settings
-            interfaces = mfl.get_interface_configs()
+            mfl.upsert_interface(request.values) # Save interface settings
+            interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
             mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address')) # Generate olsrd_config
             # Bounce stuff
-        if (request.values.get('copy')):
+        elif (request.values.get('copy')):
             mesh = mfl.mesh_get_defaults(request.values)
-        mesh['ifaces'] = mfu.get_interface_list('w')
+        else:
+            pass
+            # if config
+            # Pull those settings and add them to the mesh
+        mesh['ifaces'] = mfl.system_interfaces('w')
         return render_template('mesh.html', mesh=mesh)
 
 @app.route('/status')
@@ -68,7 +71,7 @@ def status():
 
 @app.route('/login', methods=['POST'])
 def do_admin_login():
-    password_hash = mfu.hash_password(request.form['password']).hexdigest()
+    password_hash = mfl.hash_password(request.form['password']).hexdigest()
     if (mfl.user_auth(request.form['username'], password_hash)):
         session['logged_in'] = True
     return home()
@@ -92,8 +95,8 @@ if (__name__ == '__main__'):
     app.secret_key = os.urandom(12)
     if (not os.path.isfile('db.sqlite3')):
         first_run()
-    port = mfl.get_setting('listen_port')
-    ip   = mfl.get_setting('listen_ip')
+    port = mfl.query_setting('listen_port')
+    ip   = mfl.query_setting('listen_ip')
     if (len(sys.argv) >= 2):
         port = sys.argv[1]
     app.run(host=ip, port=port, debug=False)
