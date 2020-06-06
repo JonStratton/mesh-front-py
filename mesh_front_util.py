@@ -58,18 +58,21 @@ def get_available_networks(interface = None):
         if_upd = 1
 
     network  = {}
-    split_col = re.compile('\s*:\s*')
+    split_col = re.compile('\s*:|=\s*')
     cmd = 'sudo iwlist %s scan' % (interface)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     for line in p.stdout.readlines():
-       split_line = split_col.split( line.decode('utf-8') )
-       key = split_line[0].strip()
-       value = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
-       if key.endswith('Address'): # New record found
-          key = 'Address'
-          net_list.append(network)
-          network = {} # Clear it out
-       network[key] = value
+        if (line.startswith(interface)):
+            continue
+        split_line = split_col.split( line.decode('utf-8') )
+        key = split_line[0].strip()
+        value = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
+        if key.endswith('Address'): # New record found
+            key = 'Address'
+            if (network):
+                net_list.append(network)
+                network = {}
+        network[key] = value
     retval = p.wait
     net_list.append(network)
 

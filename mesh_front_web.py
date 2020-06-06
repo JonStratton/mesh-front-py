@@ -50,7 +50,19 @@ def mesh():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
-        return render_template('mesh.html')
+        mesh = {}
+        if (request.values.get('save')):
+            print(request.values)
+            # Save interface settings
+            #mfl.set_interface()
+            # Regenerate interface file
+            # Generate olsrd_config
+            #mfl.make_olsrd_config(interface, ip_address)
+            # Bounce stuff
+        if (request.values.get('copy')):
+            mesh = mfl.mesh_get_defaults(request.values)
+        mesh['ifaces'] = mfu.get_interface_list('w')
+        return render_template('mesh.html', mesh=mesh)
 
 @app.route('/status')
 def status():
@@ -61,7 +73,7 @@ def do_admin_login():
     password_hash = mfu.hash_password(request.form['password']).hexdigest()
     if (mfl.user_auth(request.form['username'], password_hash)):
         session['logged_in'] = True
-    return status()
+    return home()
 
 @app.route('/logout')
 def logout():

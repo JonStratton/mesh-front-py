@@ -8,6 +8,20 @@ import mesh_front_util as mfu
 db_file  = 'db.sqlite3'
 env = Environment(loader=FileSystemLoader('templates'))
 
+########
+# Mesh #
+########
+
+# Try to get guess the network settings based in ESSID, etc
+def mesh_get_defaults(wifi_network):
+    mesh = {}
+    for key in wifi_network:
+        mesh[key] = wifi_network.get(key)
+    mesh['inet'] = 'static'
+    mesh['ip_address'] = '10.%s' % '.'.join(mfu.get_bg_by_string(mfu.get_hostname(), 3))
+    mesh['netmask'] = '255.0.0.0'
+    return(mesh)
+
 ######
 # DB #
 ######
@@ -85,6 +99,17 @@ def make_interface_config(interfaces):
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
+
+def make_olsrd_config(interface, ip_address):
+    config_file = '/etc/olsrd/olsrd.conf'
+
+    template = env.get_template('olsrd.conf')
+    output_from_parsed_template = template.render(interface=interface, ip_address=ip_address)
+
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
+
 
 #########
 # Setup #
