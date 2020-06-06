@@ -29,12 +29,16 @@ def query_setting(setting):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('SELECT value FROM server_settings WHERE key=?;', (setting,))
-    return(c.fetchone()[0])
+    value = ''
+    values = c.fetchone()
+    if (values):
+        value = values[0]
+    return(value)
 
 def upsert_setting(setting, value):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('INSERT INTO server_settings (key, value) VALUES (?, ?);', (setting, value))
+    c.execute('INSERT INTO server_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value;', (setting, value))
     conn.commit()
     return(0)
 
@@ -43,13 +47,14 @@ def upsert_interface(interface):
     netmask = interface.get('netmask', '')
     address = interface.get('address', '')
     inet    = interface.get('inet', '')
+    wireless_address = interface.get('wireless_address', '')
     wireless_mode    = interface.get('wireless_mode', '')
     wireless_channel = interface.get('wireless_channel', '')
     wireless_essid   = interface.get('wireless_essid', '')
 
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel))
+    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_address=excluded.wireless_address, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel))
     conn.commit()
     return(0)
 
@@ -57,9 +62,9 @@ def query_interface_settings(interface = None):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     if (interface):
-        c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ?;', (interface, ))
+        c.execute('SELECT iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ?;', (interface, ))
     else:
-        c.execute('SELECT iface, inet, address, netmask, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
+        c.execute('SELECT iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
     columns = list(map(lambda x: x[0], c.description))
     columns_length = len(columns)
     
@@ -75,7 +80,7 @@ def query_interface_settings(interface = None):
 def create_user(username, password_hash):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('INSERT INTO user_settings VALUES (?, ?);', (username, password_hash) )
+    c.execute('INSERT INTO user_settings VALUES (?, ?) ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash;', (username, password_hash) )
     conn.commit()
     return(0)
 
@@ -235,7 +240,7 @@ def setup_db():
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
-    c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_mode text, wireless_essid text, wireless_channel text)')
+    c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_address text, wireless_mode text, wireless_essid text, wireless_channel text)')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
     conn.commit()
     conn.close()

@@ -49,20 +49,22 @@ def mesh():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
-        mesh = {}
-        if (request.values.get('save')):
-            mfl.upsert_interface(request.values) # Save interface settings
+        if (request.values.get('save')): # Save settings and generate system files
+            mfl.upsert_setting('mesh_interface', request.values.get('iface'))
+            mfl.upsert_interface(request.values)
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
             mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address')) # Generate olsrd_config
-            # Bounce stuff
-        elif (request.values.get('copy')):
+            # Bounce stuff here, or reboot
+
+        mesh = {}
+        if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
             mesh = mfl.mesh_get_defaults(request.values)
-        else:
-            pass
-            # if config
-            # Pull those settings and add them to the mesh
+        elif (mfl.query_setting('mesh_interface')):
+            mesh_interface_settings = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+            mesh = mesh_interface_settings
         mesh['ifaces'] = mfl.system_interfaces('w')
+        print(mesh)
         return render_template('mesh.html', mesh=mesh)
 
 @app.route('/status')
