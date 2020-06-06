@@ -1,8 +1,11 @@
 # Created by mesh-front-py
 # Moved to /etc/network/interfaces
 
+auto lo
+iface lo inet loopback
+
 {% for iface in ifaces %}
-{% if iface.iface != 'default' %}auto {{iface.iface}}{% endif %}
+auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.address%}    address {{iface.address}}{% endif %}
 {%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
@@ -10,3 +13,5 @@ iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.wireless_channel%}    wireless-channel {{iface.wireless_channel}}{% endif %}
 {%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
 {% endfor %}
+
+iface default inet dhcp

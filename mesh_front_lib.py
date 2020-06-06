@@ -18,7 +18,7 @@ def mesh_get_defaults(wifi_network):
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
     mesh['inet'] = 'static'
-    mesh['ip_address'] = '10.%s' % '.'.join(mfu.get_bg_by_string(mfu.get_hostname(), 3))
+    mesh['address'] = '10.%s' % '.'.join(mfu.get_bg_by_string(mfu.get_hostname(), 3))
     mesh['netmask'] = '255.0.0.0'
     return(mesh)
 
@@ -100,11 +100,11 @@ def make_interface_config(interfaces):
         f.write(output_from_parsed_template)
     return(0)
 
-def make_olsrd_config(interface, ip_address):
+def make_olsrd_config(interface, address):
     config_file = '/etc/olsrd/olsrd.conf'
 
     template = env.get_template('olsrd.conf')
-    output_from_parsed_template = template.render(interface=interface, ip_address=ip_address)
+    output_from_parsed_template = template.render(interface=interface, address=address)
 
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
@@ -127,15 +127,16 @@ def setup_db():
 
 def setup_initial_settings(password):
     # Set some server configs we have
-    mfdb.set_setting('hostname', mfu.get_hostname())
-    mfdb.set_setting('listen_port', '8080')
-    mfdb.set_setting('listen_ip', '0.0.0.0')
+    set_setting('hostname', mfu.get_hostname())
+    set_setting('listen_port', '8080')
+    set_setting('listen_ip', '0.0.0.0')
 
     # Pull in current interface settings
+    print(mfu.get_interface_settings())
     for interface in mfu.get_interface_settings():
-        mfdb.set_interface(interface)
+        set_interface(interface)
 
     # Create admin user
     password_hash = mfu.hash_password(password).hexdigest()
-    mfdb.create_user('admin', password_hash)
+    create_user('admin', password_hash)
     return(0)

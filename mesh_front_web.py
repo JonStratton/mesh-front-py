@@ -52,12 +52,10 @@ def mesh():
     #else:
         mesh = {}
         if (request.values.get('save')):
-            print(request.values)
-            # Save interface settings
-            #mfl.set_interface()
-            # Regenerate interface file
-            # Generate olsrd_config
-            #mfl.make_olsrd_config(interface, ip_address)
+            mfl.set_interface(request.values) # Save interface settings
+            interfaces = mfl.get_interface_configs()
+            mfl.make_interface_config(interfaces) # Regenerate interface file
+            mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address')) # Generate olsrd_config
             # Bounce stuff
         if (request.values.get('copy')):
             mesh = mfl.mesh_get_defaults(request.values)
@@ -85,6 +83,7 @@ def home():
     return status()
 
 def first_run():
+    #salt = mfl.setup_salt()
     mfl.setup_db()
     mfl.setup_initial_settings('changeme')
     return()
