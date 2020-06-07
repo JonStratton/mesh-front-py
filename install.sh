@@ -95,8 +95,16 @@ sudo cp -r . /var/www/mesh-front-py/
 # Make sure the permissions are good
 sudo chown -R root:root /var/www/mesh-front-py/
 sudo chmod -R go-w /var/www/mesh-front-py/
+
+# DB should be read write by root and mesh front only. Other shouldnt be able to read
 sudo chown :mesh-front /var/www/mesh-front-py/db.sqlite3
 sudo chmod g+w /var/www/mesh-front-py/db.sqlite3
+sudo chmod o-r /var/www/mesh-front-py/db.sqlite3
+
+# Salt should be rw for root, readable by mesh front. Other shouldnt have access
+sudo chmod go-rwx /var/www/mesh-front-py/salt.txt
+sudo chown :mesh-front /var/www/mesh-front-py/salt.txt
+sudo chmod g+r /var/www/mesh-front-py/salt.txt
 
 # Install service
 sudo cp install/mesh-front.service /etc/systemd/system/

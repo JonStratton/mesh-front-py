@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Group=mesh-front
 WorkingDirectory=/var/www/mesh-front-py/
-ExecStart=/var/www/mesh-front-py/mesh_front_web.py 80
+ExecStart=/var/www/mesh-front-py/mesh_front_web.py
 Restart=on-failure
 
 [Install]

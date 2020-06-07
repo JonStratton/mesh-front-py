@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import sys, os, sqlite3
+import sys, os, sqlite3, getopt
 from flask import Flask, flash, redirect, render_template, request, session, abort
 import mesh_front_lib as mfl
 
-Salt = '1234'
-app  = Flask(__name__)
+Salt     = mfl.salt('salt.txt')
+FirstRun = not os.path.isfile('db.sqlite3')
+app      = Flask(__name__)
+
+# Reset password from command line
+NewPassword = mfl.randomword(10) if (FirstRun) else ''
+myopts, args = getopt.getopt(sys.argv[1:],'p:')
+for o, a in myopts:
+    if (o == '-p'):
+        NewPassword = a
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
@@ -80,7 +88,7 @@ def settings():
             mfl.upsert_setting('listen_port', request.values.get('listen_port'))
             mfl.upsert_setting('listen_ip', request.values.get('listen_ip'))
             if (request.values.get('password')):
-                upsert_user('admin', hash_password(request.values.get('password'), Salt).hexdigest())
+                mfl.upsert_user('admin', hash_password(request.values.get('password'), Salt).hexdigest())
         settings = {}
         settings['hostname'] = mfl.system_hostname()
         settings['callsign'] = mfl.query_setting('callsign')
@@ -118,18 +126,18 @@ def home():
     return status()
 
 def first_run():
-    global Salt
-    #Salt = mfl.setup_salt()
     mfl.setup_db()
-    mfl.setup_initial_settings('changeme', Salt)
+    mfl.setup_initial_settings()
     return()
 
 if (__name__ == '__main__'):
     app.secret_key = os.urandom(12)
-    if (not os.path.isfile('db.sqlite3')):
+    if (FirstRun):
         first_run()
+    if (NewPassword):
+        password_hash = mfl.hash_password(NewPassword, Salt).hexdigest()
+        mfl.upsert_user('admin', password_hash)
+        print("New Password Set. Log in with user 'admin' and password '%s'.\n" % NewPassword)
     port = mfl.query_setting('listen_port')
     ip   = mfl.query_setting('listen_ip')
-    if (len(sys.argv) >= 2):
-        port = sys.argv[1]
     app.run(host=ip, port=port, debug=False)

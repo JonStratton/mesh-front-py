@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import sqlite3, os, re, subprocess, socket, hashlib
+import sqlite3, os, re, subprocess, socket, hashlib, random, string
 from jinja2 import Environment, FileSystemLoader
 
 # Defaults
@@ -256,7 +256,7 @@ def setup_db():
     conn.close()
     return(0)
 
-def setup_initial_settings(password, salt):
+def setup_initial_settings():
     # Set some server configs we have
     upsert_setting('hostname', system_hostname())
     upsert_setting('listen_port', '8080')
@@ -266,9 +266,6 @@ def setup_initial_settings(password, salt):
     for interface in system_interface_settings():
         upsert_interface(interface)
 
-    # Create admin user
-    password_hash = hash_password(password, salt).hexdigest()
-    upsert_user('admin', password_hash)
     return(0)
 
 ##############
@@ -293,6 +290,24 @@ def get_bg_by_string(base, bit_groups_count):
 
     return(bit_groups[::-1])
 
+# Password Salt in file to help passwords in case of sqli
+# Generate password salt at first run.
+def salt(salt_file):
+    salt = ''
+    if (os.path.isfile(salt_file)):
+        with open(salt_file, 'r') as f:
+            salt = f.readline().replace('\n', '')
+    else:
+        salt = randomword(10)
+        with open(salt_file, 'w') as f:
+            f.write(salt)
+    return(salt)
+
 def hash_password(password, salt=''):
     salted_password = password+salt
     return(hashlib.md5(salted_password.encode()))
+
+# https://stackoverflow.com/questions/2030053/random-strings-in-python#2030081
+def randomword(length):
+    nonwhitespace = string.digits + string.letters + string.punctuation
+    return ''.join(random.choice(nonwhitespace) for i in range(length))
