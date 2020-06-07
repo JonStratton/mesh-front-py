@@ -17,10 +17,31 @@
 <tr><td>Type</td><td><input type="text" name="inet" value="{{mesh.inet}}"></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{mesh.address}}"></td></tr>
 <tr><td>Netmask</td><td><input type="text" name="netmask" value="{{mesh.netmask}}"></td></tr>
+
 <tr><td>Wireless Address</td><td><input type="text" name="wireless_address" value="{{mesh.wireless_address}}"></td></tr>
 <tr><td>Wireless Mode</td><td><input type="text" name="wireless_mode" value="{{mesh.wireless_mode}}"></td></tr>
 <tr><td>Wireless Channel</td><td><input type="text" name="wireless_channel" value="{{mesh.wireless_channel}}"></td></tr>
 <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{mesh.wireless_essid}}"></td></tr>
+
+<!--<tr><td>Node Name</td><td><input type="text" name="node_name" value="{{mesh.node_name}}"></td></tr>-->
+{% if mesh.ham_mesh %}
+<tr><td>Ham Radio CallSign</td><td><input type="text" name="callsign" value="{{mesh.callsign}}"></td></tr>
+{% endif %}
+
+<tr><td>Share Internet Interface</td><td>
+	<select name="share_iface">
+		<option></option>
+		{% for iface in mesh.share_ifaces %}
+		<option {% if iface == mesh.share_interface %}selected{% endif %}>{{iface}}</option>
+		{% endfor %}
+	</select></td></tr>
+<tr><td>Serve Local Interface</td><td>
+	<select name="serve_iface">
+		<option></option>
+		{% for iface in mesh.serve_ifaces %}
+		<option {% if iface == mesh.serve_interface %}selected{% endif %}>{{iface}}</option>
+		{% endfor %}
+	</select></td></tr>
 </table>
 <input type="submit" value="Save">
 </form>

@@ -53,12 +53,24 @@ def mesh():
     #else:
         if (request.values.get('save')): # Save settings and generate system files
             mfl.upsert_setting('mesh_interface', request.values.get('iface'))
+            #mfl.upsert_setting('node_name', request.values.get('node_name'))
             mfl.upsert_interface(request.values)
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
             mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address'), mfl.system_hostname()) # Generate olsrd_config
-            mfl.system_bridge_interfaces(request.values.get('iface'), 'ens18')
-            # Bounce stuff here, or reboot
+
+            if (request.values.get('share_iface')):
+                mfl.upsert_setting('share_interface', request.values.get('share_iface'))
+                mfl.system_bridge_interfaces(request.values.get('iface'), request.values.get('share_iface'))
+            else:
+                mfl.upsert_setting('share_interface', request.values.get('share_iface'))
+                mfl.system_clear_iptables()
+
+            # TODO, Set up DHCP Server on IF here?
+            if (request.values.get('serve_iface')):
+                mfl.upsert_setting('serve_interface', request.values.get('serve_iface'))
+            else:
+                mfl.upsert_setting('serve_interface', request.values.get('serve_iface'))
 
         mesh = {}
         if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
@@ -67,15 +79,21 @@ def mesh():
             mesh_interface_settings = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
             mesh = mesh_interface_settings
         mesh['ifaces'] = mfl.system_interfaces('w')
+        mesh['share_ifaces'] = mfl.system_interfaces()
+        mesh['serve_ifaces'] = mfl.system_interfaces()
+        mesh['share_interface'] = mfl.query_setting('share_interface')
+        mesh['serve_interface'] = mfl.query_setting('serve_interface')
+        #mesh['node_name'] = mfl.query_setting('node_name')
+        mesh['callsign']  = mfl.query_setting('callsign')
+        #if (mesh.get('ham_mesh', '')): # default node_name to callsign_hostname
+        #    mesh['node_name'] = '%s_%s' % (mesh['callsign'], mfl.system_hostname())
         return render_template('mesh.html', mesh=mesh)
 
 # List 
 @app.route('/neighbors')
 def neighbors():
-    if not session.get('logged_in'):
-       return render_template('login.html')
-    else:
-        return render_template('neighbors.html')
+    neighbors = mfl.mesh_get('links')
+    return render_template('neighbors.html', neighbors=neighbors)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -103,27 +121,23 @@ def reboot():
         return render_template('login.html')
     else:
         mfl.system_reboot()
-        return home()
-
-@app.route('/status')
-def status():
-    return render_template('status.html')
+        return neighbors()
 
 @app.route('/login', methods=['POST'])
 def do_admin_login():
     password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
     if (mfl.user_auth(request.form['username'], password_hash)):
         session['logged_in'] = True
-    return home()
+    return neighbors()
 
 @app.route('/logout')
 def logout():
     session['logged_in'] = False
-    return status()
+    return neighbors()
 
 @app.route('/')
 def home():
-    return status()
+    return neighbors()
 
 def first_run():
     mfl.setup_db()

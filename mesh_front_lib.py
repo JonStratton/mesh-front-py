@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import sqlite3, os, re, subprocess, socket, hashlib, random, string
+import sqlite3, os, re, subprocess, socket, hashlib, random, string, json
 from jinja2 import Environment, FileSystemLoader
 
 # Defaults
@@ -19,7 +19,22 @@ def mesh_get_defaults(wifi_network):
     mesh['inet'] = 'static'
     mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
     mesh['netmask'] = '255.0.0.0'
+
+    # Need to make sure people tread lightly here
+    if (mesh['wireless_essid'].startswith('AREDN-') or mesh['wireless_essid'].startswith('BroadbandHamnet-')):
+        mesh['ham_mesh'] = 1
+        mesh['type'] = 'olsr'
+    if (mesh['wireless_channel'] == '-1' or mesh['wireless_channel'] == '-2'):
+        mesh['ham_mesh'] = 1
+
     return(mesh)
+
+def mesh_get(item = None):
+    # wget over python request just so you dont have to import??! Are you insane?!!
+    cmd = 'wget -qO- http://127.0.0.1:9090/%s' % (item)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    data = json.loads(''.join(p.stdout.readlines()))
+    return(data)
 
 ######
 # DB #
@@ -131,6 +146,19 @@ def system_bridge_interfaces(w_iface, e_iface):
     cmds = [ 'sudo iptables -t nat -A POSTROUTING -o %s -j MASQUERADE' % (e_iface),
             'sudo iptables -A FORWARD -i %s -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT' % (e_iface, w_iface),
             'sudo iptables -A FORWARD -i %s -o %s -j ACCEPT' % (w_iface, e_iface),
+            'sudo iptables-save > /etc/iptables/rules.v4' ]
+    for cmd in cmds:
+        subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(0)
+
+def system_clear_iptables():
+    cmds = [ 'sudo iptables -P INPUT ACCEPT',
+            'sudo iptables -P FORWARD ACCEPT',
+            'sudo iptables -P OUTPUT ACCEPT',
+            'sudo iptables -t nat -F',
+            'sudo iptables -t mangle -F',
+            'sudo iptables -F',
+            'sudo iptables -X',
             'sudo iptables-save > /etc/iptables/rules.v4' ]
     for cmd in cmds:
         subprocess.call(cmd, shell=True, stdout=None, stderr=None)
@@ -259,6 +287,7 @@ def setup_db():
 def setup_initial_settings():
     # Set some server configs we have
     upsert_setting('hostname', system_hostname())
+    upsert_setting('callsign', 'NOCALL')
     upsert_setting('listen_port', '8080')
     upsert_setting('listen_ip', '0.0.0.0')
 
