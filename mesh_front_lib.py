@@ -77,7 +77,7 @@ def query_interface_settings(interface = None):
 
     return(records)
 
-def create_user(username, password_hash):
+def upsert_user(username, password_hash):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('INSERT INTO user_settings VALUES (?, ?) ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash;', (username, password_hash) )
@@ -125,6 +125,16 @@ def system_interfaces(if_type = None):
             continue
         if_list.append(iface)
     return(if_list)
+
+# Bridge Interfaces if sharing.
+def system_bridge_interfaces(w_iface, e_iface):
+    cmds = [ 'sudo iptables -t nat -A POSTROUTING -o %s -j MASQUERADE' % (e_iface),
+            'sudo iptables -A FORWARD -i %s -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT' % (e_iface, w_iface),
+            'sudo iptables -A FORWARD -i %s -o %s -j ACCEPT' % (w_iface, e_iface),
+            'sudo iptables-save > /etc/iptables/rules.v4' ]
+    for cmd in cmds:
+        subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+    return(0)
 
 #############################
 # System Interface Settings #
@@ -221,11 +231,11 @@ def make_interface_config(interfaces):
         f.write(output_from_parsed_template)
     return(0)
 
-def make_olsrd_config(interface, address):
+def make_olsrd_config(interface, address, hostname):
     config_file = '/etc/olsrd/olsrd.conf'
 
     template = env.get_template('olsrd.conf')
-    output_from_parsed_template = template.render(interface=interface, address=address)
+    output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname)
 
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
@@ -246,7 +256,7 @@ def setup_db():
     conn.close()
     return(0)
 
-def setup_initial_settings(password):
+def setup_initial_settings(password, salt):
     # Set some server configs we have
     upsert_setting('hostname', system_hostname())
     upsert_setting('listen_port', '8080')
@@ -257,8 +267,8 @@ def setup_initial_settings(password):
         upsert_interface(interface)
 
     # Create admin user
-    password_hash = hash_password(password).hexdigest()
-    create_user('admin', password_hash)
+    password_hash = hash_password(password, salt).hexdigest()
+    upsert_user('admin', password_hash)
     return(0)
 
 ##############

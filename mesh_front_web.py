@@ -4,7 +4,8 @@ import sys, os, sqlite3
 from flask import Flask, flash, redirect, render_template, request, session, abort
 import mesh_front_lib as mfl
 
-app = Flask(__name__)
+Salt = '1234'
+app  = Flask(__name__)
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
@@ -37,13 +38,6 @@ def scan():
         networks = mfl.system_wifi_networks()
         return render_template('scan.html', networks=networks)
 
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
-        return render_template('settings.html')
-
 @app.route('/mesh', methods=['GET', 'POST'])
 def mesh():
     #if not session.get('logged_in'):
@@ -54,7 +48,8 @@ def mesh():
             mfl.upsert_interface(request.values)
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
-            mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address')) # Generate olsrd_config
+            mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address'), mfl.system_hostname()) # Generate olsrd_config
+            mfl.system_bridge_interfaces(request.values.get('iface'), 'ens18')
             # Bounce stuff here, or reboot
 
         mesh = {}
@@ -64,8 +59,43 @@ def mesh():
             mesh_interface_settings = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
             mesh = mesh_interface_settings
         mesh['ifaces'] = mfl.system_interfaces('w')
-        print(mesh)
         return render_template('mesh.html', mesh=mesh)
+
+# List 
+@app.route('/neighbors')
+def neighbors():
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
+        return render_template('neighbors.html')
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    #if not session.get('logged_in'):
+    #   return render_template('login.html')
+    #else:
+        if (request.values.get('save')):
+            mfl.system_hostname(request.values.get('hostname'))
+            mfl.upsert_setting('callsign', request.values.get('callsign'))
+            mfl.upsert_setting('listen_port', request.values.get('listen_port'))
+            mfl.upsert_setting('listen_ip', request.values.get('listen_ip'))
+            if (request.values.get('password')):
+                upsert_user('admin', hash_password(request.values.get('password'), Salt).hexdigest())
+        settings = {}
+        settings['hostname'] = mfl.system_hostname()
+        settings['callsign'] = mfl.query_setting('callsign')
+        settings['listen_port'] = mfl.query_setting('listen_port')
+        settings['listen_ip'] = mfl.query_setting('listen_ip')
+        return render_template('settings.html', settings=settings)
+
+# Just reboot.
+@app.route('/reboot')
+def reboot():
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+        mfl.system_reboot()
+        return home()
 
 @app.route('/status')
 def status():
@@ -73,7 +103,7 @@ def status():
 
 @app.route('/login', methods=['POST'])
 def do_admin_login():
-    password_hash = mfl.hash_password(request.form['password']).hexdigest()
+    password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
     if (mfl.user_auth(request.form['username'], password_hash)):
         session['logged_in'] = True
     return home()
@@ -88,9 +118,10 @@ def home():
     return status()
 
 def first_run():
-    #salt = mfl.setup_salt()
+    global Salt
+    #Salt = mfl.setup_salt()
     mfl.setup_db()
-    mfl.setup_initial_settings('changeme')
+    mfl.setup_initial_settings('changeme', Salt)
     return()
 
 if (__name__ == '__main__'):

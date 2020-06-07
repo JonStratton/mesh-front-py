@@ -1,5 +1,19 @@
+{% extends 'base.html' %}
+
 {% block body %}
 
-<h1>Settings</h1>
+<h1>System Settings</h1>
+
+<form method="post">
+<input type="hidden" name="save" value="1">
+<table>
+	<tr><td>Hostname</td><td><input type="text" name="hostname" value="{{settings.hostname}}"></td></tr>
+	<tr><td>Callsign</td><td><input type="text" name="callsign" value="{{settings.callsign}}"></td></tr>
+	<tr><td>Admin Password</td><td><input type="text" name="password" value="{{settings.password}}"></td></tr>
+	<tr><td>Listen IP</td><td><input type="text" name="listen_ip" value="{{settings.listen_ip}}"></td></tr>
+	<tr><td>Listen Port</td><td><input type="text" name="listen_port" value="{{settings.listen_port}}"></td></tr>
+</table>
+<input type="submit" value="Save">
+</form>
 
 {% endblock %}
