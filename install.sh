@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/default/olsrd /etc/iptables/rules.v4"
+system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname"
 
 ###########
 # Install #

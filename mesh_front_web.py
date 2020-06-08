@@ -53,7 +53,13 @@ def mesh():
     #else:
         if (request.values.get('save')): # Save settings and generate system files
             mfl.upsert_setting('mesh_interface', request.values.get('iface'))
-            #mfl.upsert_setting('node_name', request.values.get('node_name'))
+            mfl.upsert_setting('ham_mesh', request.values.get('ham_mesh'))
+
+            # Reset the hostname first, so it can filter to the other changes
+            if (request.values.get('hostname')):
+                mfl.system_hostname(request.values.get('hostname'))
+
+            # Update interface settings
             mfl.upsert_interface(request.values)
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
@@ -83,10 +89,10 @@ def mesh():
         mesh['serve_ifaces'] = mfl.system_interfaces()
         mesh['share_interface'] = mfl.query_setting('share_interface')
         mesh['serve_interface'] = mfl.query_setting('serve_interface')
-        #mesh['node_name'] = mfl.query_setting('node_name')
+        mesh['hostname'] = mfl.system_hostname()
         mesh['callsign']  = mfl.query_setting('callsign')
-        #if (mesh.get('ham_mesh', '')): # default node_name to callsign_hostname
-        #    mesh['node_name'] = '%s_%s' % (mesh['callsign'], mfl.system_hostname())
+        if (mesh.get('ham_mesh', '')): # default hostname to callsign_hostname
+            mesh['hostname'] = '%s-%s' % (mesh['callsign'], mfl.system_hostname())
         return render_template('mesh.html', mesh=mesh)
 
 # List 

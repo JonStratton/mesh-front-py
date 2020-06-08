@@ -23,7 +23,8 @@
 <tr><td>Wireless Channel</td><td><input type="text" name="wireless_channel" value="{{mesh.wireless_channel}}"></td></tr>
 <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{mesh.wireless_essid}}"></td></tr>
 
-<!--<tr><td>Node Name</td><td><input type="text" name="node_name" value="{{mesh.node_name}}"></td></tr>-->
+<tr><td>Hostname</td><td><input type="text" name="hostname" value="{{mesh.hostname}}"></td></tr>
+<tr><td>Ham Mesh</td><td><input type="checkbox" name="ham_mesh" {% if mesh.ham_mesh %}checked{% endif %}></td></tr>
 {% if mesh.ham_mesh %}
 <tr><td>Ham Radio CallSign</td><td><input type="text" name="callsign" value="{{mesh.callsign}}"></td></tr>
 {% endif %}

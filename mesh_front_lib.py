@@ -112,7 +112,10 @@ def user_auth(user, password_hash):
 
 def system_hostname(new_hostname = None):
     if (new_hostname):
-        return(0) # TODO
+        cmd = 'sudo hostname %s' % (new_hostname)
+        code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
+        make_hostname_and_hosts(new_hostname)
+        return(socket.gethostname())
     else:
         return(socket.gethostname())
 
@@ -265,6 +268,20 @@ def make_olsrd_config(interface, address, hostname):
     template = env.get_template('olsrd.conf')
     output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname)
 
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
+
+def make_hostname_and_hosts(hostname):
+    config_file = '/etc/hostname'
+    template = env.get_template('hostname')
+    output_from_parsed_template = template.render(hostname=hostname)
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+
+    config_file = '/etc/hosts'
+    template = env.get_template('hosts')
+    output_from_parsed_template = template.render(hostname=hostname)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
