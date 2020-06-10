@@ -60,7 +60,7 @@ def mesh():
                 mfl.system_hostname(escape(request.values.get('hostname')))
 
             # Update interface settings
-            mfl.upsert_interface(request.values)
+            mfl.upsert_interface(request.values) # TODO, Escape this
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
             mfl.make_olsrd_config(escape(request.values.get('iface')),
@@ -71,21 +71,21 @@ def mesh():
             mfl.make_olsrd_key(escape(request.values.get('olsrd_key')))
 
             if (request.values.get('share_iface')):
-                mfl.upsert_setting('share_interface', request.values.get('share_iface'))
-                mfl.system_bridge_interfaces(request.values.get('iface'), request.values.get('share_iface'))
+                mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
+                mfl.system_bridge_interfaces( escape(request.values.get('iface')), escape(request.values.get('share_iface')))
             else:
-                mfl.upsert_setting('share_interface', request.values.get('share_iface'))
+                mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
                 mfl.system_clear_iptables()
 
             # TODO, Set up DHCP Server on IF here?
             if (request.values.get('serve_iface')):
-                mfl.upsert_setting('serve_interface', request.values.get('serve_iface'))
+                mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
             else:
-                mfl.upsert_setting('serve_interface', request.values.get('serve_iface'))
+                mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
 
         mesh = {}
         if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
-            mesh = mfl.mesh_get_defaults(request.values)
+            mesh = mfl.mesh_get_defaults(request.values) # TODO, Escape this
         elif (mfl.query_setting('mesh_interface')):
             mesh_interface_settings = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
             mesh = mesh_interface_settings
@@ -112,10 +112,10 @@ def settings():
     #   return render_template('login.html')
     #else:
         if (request.values.get('save')):
-            mfl.system_hostname(request.values.get('hostname'))
-            mfl.upsert_setting('callsign', request.values.get('callsign'))
-            mfl.upsert_setting('listen_port', request.values.get('listen_port'))
-            mfl.upsert_setting('listen_ip', request.values.get('listen_ip'))
+            mfl.system_hostname(escape(request.values.get('hostname')))
+            mfl.upsert_setting('callsign', escape(request.values.get('callsign')))
+            mfl.upsert_setting('listen_port', escape(request.values.get('listen_port')))
+            mfl.upsert_setting('listen_ip', escape(request.values.get('listen_ip')))
             if (request.values.get('password')):
                 mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
         settings = {}

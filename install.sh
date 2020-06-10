@@ -36,6 +36,7 @@ then
     read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
 fi
 sudo usermod -a -G $myname $installuser
+newgrp $myname
 
 # 4. Add sudo access to group, and other generic install files
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
