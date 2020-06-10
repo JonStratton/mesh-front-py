@@ -11,7 +11,8 @@ env = Environment(loader=FileSystemLoader('templates'))
 # Mesh #
 ########
 
-# Try to get guess the network settings based in ESSID, etc
+# Try to get guess the network settings based in ESSID, etc.
+# TODO, Split this out into a mesh identifier, and a default configuration by mesh type
 def mesh_get_defaults(wifi_network):
     mesh = {}
     for key in wifi_network:
@@ -20,7 +21,17 @@ def mesh_get_defaults(wifi_network):
     mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
     mesh['netmask'] = '255.0.0.0'
 
+    # LibreMesh (Adhoc)
+    if (mesh['wireless_essid'] == 'LibreMesh.org' or mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE'):
+        mesh['type'] = 'batman'
+
+    # freifunk.net
+    # https://github.com/rubo77/batman-connect/blob/master/batman-connect
+    if (mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
+        mesh['type'] = 'batman'
+
     # Need to make sure people tread lightly here
+    # AREDN / BBHN / HSMM
     if (mesh['wireless_essid'].startswith('AREDN-') or mesh['wireless_essid'].startswith('BroadbandHamnet-')):
         mesh['ham_mesh'] = 1
         mesh['type'] = 'olsr'
@@ -31,9 +42,12 @@ def mesh_get_defaults(wifi_network):
 
 def mesh_get(item = None):
     # wget over python request just so you dont have to import??! Are you insane?!!
+    data = []
     cmd = 'wget -qO- http://127.0.0.1:9090/%s' % (item)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    data = json.loads(''.join(p.stdout.readlines()))
+    cmd_return = ''.join(p.stdout.readlines())
+    if (cmd_return):
+        data = json.loads(cmd_return)
     return(data)
 
 ######
@@ -130,7 +144,7 @@ def system_set_interface_state(interface, state):
     return(code)
 
 def system_get_interface_state(interface):
-    if_state = '';
+    if_state = ''
     with open('/sys/class/net/%s/operstate' % (interface), 'r') as f:
         if_state = f.readline().replace('\n', '')
     return if_state
@@ -254,20 +268,25 @@ def system_wifi_networks(interface = None):
 
 def make_interface_config(interfaces):
     config_file = '/etc/network/interfaces'
-
     template = env.get_template('interfaces')
     output_from_parsed_template = template.render(ifaces=interfaces)
-
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
 
-def make_olsrd_config(interface, address, hostname):
+def make_olsrd_config(interface, address, hostname, share_iface, olsrd_key):
     config_file = '/etc/olsrd/olsrd.conf'
-
     template = env.get_template('olsrd.conf')
-    output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname)
+    output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname,
+            olsrd_key=olsrd_key, share_iface=share_iface)
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
 
+def make_olsrd_key(olsrd_key):
+    config_file = '/etc/olsrd/olsrd.key'
+    template = env.get_template('olsrd.key')
+    output_from_parsed_template = template.render(olsrd_key=olsrd_key)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
@@ -278,7 +297,6 @@ def make_hostname_and_hosts(hostname):
     output_from_parsed_template = template.render(hostname=hostname)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
-
     config_file = '/etc/hosts'
     template = env.get_template('hosts')
     output_from_parsed_template = template.render(hostname=hostname)

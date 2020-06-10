@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 __author__ = 'Jon Stratton'
-import sys, os, sqlite3, getopt
-from flask import Flask, flash, redirect, render_template, request, session, abort
+import sys, os, getopt
+from flask import Flask, render_template, request, session, escape
 import mesh_front_lib as mfl
 
 Salt     = mfl.salt('salt.txt')
@@ -10,7 +10,7 @@ app      = Flask(__name__)
 
 # Reset password from command line
 NewPassword = mfl.randomword(10) if (FirstRun) else ''
-myopts, args = getopt.getopt(sys.argv[1:],'p:')
+myopts, args = getopt.getopt(sys.argv[1:], 'p:')
 for o, a in myopts:
     if (o == '-p'):
         NewPassword = a
@@ -24,7 +24,7 @@ def if_config():
         if (request.values.get('save')):
             interface_update = {}
             for key in request.values:
-                interface_update[key] = request.values.get(key)
+                interface_update[escape(key)] = escape(request.values.get(key))
             mfl.upsert_interface(interface_update)
 
             # Update the config files on the system
@@ -34,7 +34,7 @@ def if_config():
         # If we have an interface, only get it
         interface = None
         if (request.values.get('interface')):
-            interface = request.values.get('interface')
+            interface = escape(request.values.get('interface'))
         if_configs = mfl.query_interface_settings(interface)
         return render_template('ifconfig.html', ifaces=if_configs)
 
@@ -52,18 +52,23 @@ def mesh():
     #   return render_template('login.html')
     #else:
         if (request.values.get('save')): # Save settings and generate system files
-            mfl.upsert_setting('mesh_interface', request.values.get('iface'))
-            mfl.upsert_setting('ham_mesh', request.values.get('ham_mesh'))
+            mfl.upsert_setting('mesh_interface', escape(request.values.get('iface')))
+            mfl.upsert_setting('ham_mesh', escape(request.values.get('ham_mesh')))
 
             # Reset the hostname first, so it can filter to the other changes
             if (request.values.get('hostname')):
-                mfl.system_hostname(request.values.get('hostname'))
+                mfl.system_hostname(escape(request.values.get('hostname')))
 
             # Update interface settings
             mfl.upsert_interface(request.values)
             interfaces = mfl.query_interface_settings()
             mfl.make_interface_config(interfaces) # Regenerate interface file
-            mfl.make_olsrd_config(request.values.get('iface'), request.values.get('address'), mfl.system_hostname()) # Generate olsrd_config
+            mfl.make_olsrd_config(escape(request.values.get('iface')),
+                    escape(request.values.get('address')),
+                    mfl.system_hostname(),
+                    1 if (request.values.get('share_iface')) else 0,
+                    escape(request.values.get('olsrd_key'))) # Generate olsrd_config
+            mfl.make_olsrd_key(escape(request.values.get('olsrd_key')))
 
             if (request.values.get('share_iface')):
                 mfl.upsert_setting('share_interface', request.values.get('share_iface'))
@@ -95,7 +100,7 @@ def mesh():
             mesh['hostname'] = '%s-%s' % (mesh['callsign'], mfl.system_hostname())
         return render_template('mesh.html', mesh=mesh)
 
-# List 
+# List
 @app.route('/neighbors')
 def neighbors():
     neighbors = mfl.mesh_get('links')
@@ -112,7 +117,7 @@ def settings():
             mfl.upsert_setting('listen_port', request.values.get('listen_port'))
             mfl.upsert_setting('listen_ip', request.values.get('listen_ip'))
             if (request.values.get('password')):
-                mfl.upsert_user('admin', hash_password(request.values.get('password'), Salt).hexdigest())
+                mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
         settings = {}
         settings['hostname'] = mfl.system_hostname()
         settings['callsign'] = mfl.query_setting('callsign')
@@ -123,9 +128,9 @@ def settings():
 # Just reboot.
 @app.route('/reboot')
 def reboot():
-    if not session.get('logged_in'):
-        return render_template('login.html')
-    else:
+    #if not session.get('logged_in'):
+    #    return render_template('login.html')
+    #else:
         mfl.system_reboot()
         return neighbors()
 

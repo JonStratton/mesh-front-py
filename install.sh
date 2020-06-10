@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname"
+system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname"
 
 ###########
 # Install #
@@ -13,7 +13,9 @@ for system_file in $system_files
 do
    if [ -e $system_file ]
    then
-      sudo cp $system_file $system_file.$myname
+      sudo cp $system_file $system_file.$myname-backup
+   else
+      sudo touch $system_file
    fi
 done
 
@@ -43,11 +45,8 @@ sudo cp install/olsrd /etc/default/olsrd
 # 5. Open System files to group
 for system_file in $system_files
 do
-   if [ -e $system_file ]
-   then
-      sudo chown :$myname $system_file
-      sudo chmod g+w $system_file
-   fi
+   sudo chown :$myname $system_file
+   sudo chmod g+w $system_file
 done
 }
 
@@ -59,10 +58,11 @@ uninstall_mesh_front()
 # 0. Restore old system files
 for system_file in $system_files
 do
-   if [ -e $system_file.$myname ]
+   sudo rm $system_file
+   if [ -e $system_file.$myname-backup ]
    then
-      sudo rm $system_file
-      sudo mv $system_file.$myname $system_file
+      sudo mv $system_file.$myname-backup $system_file
+   else
    fi
 done
 
