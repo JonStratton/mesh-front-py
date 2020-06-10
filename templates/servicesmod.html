@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<h1>Service Add or Change</h1>
+
+<form method="post">
+<input type="hidden" name="save" value="1">
+<table>
+<input type="hidden" name="id" value="{{id}}"></td></tr>
+	<tr><td>Name</td><td><input type="text" name="name" value="{{name}}"></td></tr>
+	<tr><td>Host</td><td><input type="text" name="host" value="{{host}}"></td></tr>
+	<tr><td>Port</td><td><input type="number" name="port" value="{{port}}"></td></tr>
+	<tr><td>Protocal</td><td><input type="text" name="protocal" value="{{protocal}}"></td></tr>
+	<tr><td>Local Port</td><td><input type="number" name="port" value="{{local_port}}"></td></tr>
+	<tr><td>Service URL</td><td><input type="text" name="url" value="{{url}}"></td></tr>
+</table>
+<input type="submit" value="{{button}}">
+</form>
+
+{% endblock %}

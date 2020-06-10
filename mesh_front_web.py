@@ -125,6 +125,24 @@ def settings():
         settings['listen_ip'] = mfl.query_setting('listen_ip')
         return render_template('settings.html', settings=settings)
 
+@app.route('/services', methods=['GET', 'POST'])
+@app.route('/services/<action>', methods=['GET', 'POST'])
+@app.route('/services/<action>/<service_id>', methods=['GET', 'POST'])
+def services(action = 'display', service_id = None):
+    #if not session.get('logged_in'):
+    #   return render_template('login.html')
+    #else:
+        # TODO: page = request.args.get('page', default = 1, type = int)
+        if (request.values.get('save')):
+            mfl.upsert_service(request.values)
+        if (action == 'add'):
+            return render_template('servicesmod.html', service = {}, button = 'Add')
+        if (action == 'edit' and service_id):
+            service = mfl.query_service(service_id)[0]
+            return render_template('servicesmod.html', service = service, button = 'Save')
+        services = mfl.query_services()
+        return render_template('services.html', services = services)
+
 # Just reboot.
 @app.route('/reboot')
 def reboot():
