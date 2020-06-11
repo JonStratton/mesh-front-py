@@ -7,6 +7,39 @@ from jinja2 import Environment, FileSystemLoader
 db_file  = 'db.sqlite3'
 env = Environment(loader=FileSystemLoader('templates'))
 
+###################
+# Refresh Configs #
+###################
+    # Basically, saves everything to system files
+
+def refresh_configs():
+    # Make interfaces Files
+    interfaces = query_interface_settings()
+    make_interface_config(interfaces)
+
+    # Make olrs Configs if olrs
+    make_olsrd_config(query_setting('mesh_interface'),
+        '10.4.65.173', # TODO, Mesh iface IP
+        system_hostname(),
+        1 if (query_setting('share_iface')) else 0,
+        query_setting('olsrd_key'),
+        query_services())
+    make_olsrd_key(query_setting('olsrd_key'))
+
+    # Bridge Interfaces if sharing internet
+    if (query_setting('share_iface')):
+        system_bridge_interfaces(query_setting('mesh_interface'), query_setting('share_iface'))
+    else:
+        system_clear_iptables()
+
+    # TODO, DHCP Server if serving internet
+    if (query_setting('serve_iface')):
+        pass
+    else:
+	pass
+    return(0)
+
+
 ########
 # Mesh #
 ########
@@ -41,6 +74,8 @@ def mesh_get_defaults(wifi_network):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
+    elif (mesh['type'] == 'batman'):
+        mesh['inet'] = 'auto'
 
     return(mesh)
 

@@ -15,6 +15,9 @@ for o, a in myopts:
     if (o == '-p'):
         NewPassword = a
 
+# Mfl functions templates can call directly
+app.jinja_env.globals.update(system_hostname=mfl.system_hostname)
+
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
     #if not session.get('logged_in'):
@@ -26,11 +29,7 @@ def if_config():
             for key in request.values:
                 interface_update[escape(key)] = escape(request.values.get(key))
             mfl.upsert_interface(interface_update)
-
-            # Update the config files on the system
-            interfaces = mfl.query_interface_settings()
-            mfl.make_interface_config(interfaces)
-
+            mfl.refresh_configs()
         # If we have an interface, only get it
         interface = None
         if (request.values.get('interface')):
@@ -54,36 +53,12 @@ def mesh():
         if (request.values.get('save')): # Save settings and generate system files
             mfl.upsert_setting('mesh_interface', escape(request.values.get('iface')))
             mfl.upsert_setting('ham_mesh', escape(request.values.get('ham_mesh')))
-
-            # Reset the hostname first, so it can filter to the other changes
-            if (request.values.get('hostname')):
-                mfl.system_hostname(escape(request.values.get('hostname')))
-
-            # Update interface settings
+            mfl.upsert_setting('olsrd_key', escape(request.values.get('olsrd_key')))
+            mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
+            mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
+            mfl.system_hostname(escape(request.values.get('hostname')))
             mfl.upsert_interface(request.values) # TODO, Escape this
-            interfaces = mfl.query_interface_settings()
-            mfl.make_interface_config(interfaces) # Regenerate interface file
-            mfl.make_olsrd_config(escape(request.values.get('iface')),
-                    escape(request.values.get('address')),
-                    mfl.system_hostname(),
-                    1 if (request.values.get('share_iface')) else 0,
-                    escape(request.values.get('olsrd_key')),
-                    mfl.query_services()) # Generate olsrd_config
-            mfl.make_olsrd_key(escape(request.values.get('olsrd_key')))
-
-            if (request.values.get('share_iface')):
-                mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
-                mfl.system_bridge_interfaces( escape(request.values.get('iface')), escape(request.values.get('share_iface')))
-            else:
-                mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
-                mfl.system_clear_iptables()
-
-            # TODO, Set up DHCP Server on IF here?
-            if (request.values.get('serve_iface')):
-                mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
-            else:
-                mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
-
+            mfl.refresh_configs()
         mesh = {}
         if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
             mesh = mfl.mesh_get_defaults(request.values) # TODO, Escape this
@@ -115,6 +90,7 @@ def settings():
             mfl.upsert_setting('listen_ip', escape(request.values.get('listen_ip')))
             if (request.values.get('password')):
                 mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
+            mfl.refresh_configs()
         settings = {}
         settings['hostname'] = mfl.system_hostname()
         settings['callsign'] = mfl.query_setting('callsign')
@@ -132,19 +108,13 @@ def services(action = 'display', service_id = None):
         # TODO: page = request.args.get('page', default = 1, type = int)
         if (request.values.get('save')):
             mfl.upsert_service(request.values)
+            mfl.refresh_configs()
         if (action == 'add'):
             return render_template('servicesadd.html')
         elif (action == 'delete' and service_id):
             mfl.delete_service(service_id)
+            mfl.refresh_configs()
         services = mfl.query_services()
-
-        #mfl.make_olsrd_config(escape(request.values.get('iface')),
-        #            escape(request.values.get('address')),
-        #            mfl.system_hostname(),
-        #            1 if (request.values.get('share_iface')) else 0,
-        #            escape(request.values.get('olsrd_key')),
-        #            mfl.query_services()) # Generate olsrd_config
-
         return render_template('services.html', services = services, hostname = mfl.system_hostname())
 
 # Just reboot.

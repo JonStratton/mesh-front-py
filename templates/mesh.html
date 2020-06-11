@@ -9,12 +9,11 @@
 <table>
 <tr><td>Interface</td><td>
 	<select name="iface">
-		{% if mesh.iface %}<option>{{mesh.iface}}</option>
-                {% else %}
-			{% for iface in mesh.ifaces %}<option>{{iface}}</option>{% endfor %}
-		{% endif %}
+		{% for iface in mesh.ifaces %}
+			<option {% if mesh.iface == iface %}selected{% endif %}>{{iface}}</option>
+		{% endfor %}
 	</select></td></tr>
-<tr><td>Type</td><td><input type="text" name="inet" value="{{mesh.inet}}"></td></tr>
+<tr><td>Interface Type</td><td><input type="text" name="inet" value="{{mesh.inet}}"></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{mesh.address}}"></td></tr>
 <tr><td>Netmask</td><td><input type="text" name="netmask" value="{{mesh.netmask}}"></td></tr>
 
@@ -23,7 +22,9 @@
 <tr><td>Wireless Channel</td><td><input type="text" name="wireless_channel" value="{{mesh.wireless_channel}}"></td></tr>
 <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{mesh.wireless_essid}}"></td></tr>
 
+{% if mesh.type == 'olsr' %}
 <tr><td>OLSRD Key</td><td><input type="text" name="olsrd_key" value="{{mesh.olsrd_key}}"></td></tr>
+{% endif %}
 
 <tr><td>Hostname</td><td><input type="text" name="hostname" value="{{mesh.hostname}}"></td></tr>
 
