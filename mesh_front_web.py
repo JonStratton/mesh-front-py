@@ -67,7 +67,8 @@ def mesh():
                     escape(request.values.get('address')),
                     mfl.system_hostname(),
                     1 if (request.values.get('share_iface')) else 0,
-                    escape(request.values.get('olsrd_key'))) # Generate olsrd_config
+                    escape(request.values.get('olsrd_key')),
+                    mfl.query_services()) # Generate olsrd_config
             mfl.make_olsrd_key(escape(request.values.get('olsrd_key')))
 
             if (request.values.get('share_iface')):
@@ -94,10 +95,6 @@ def mesh():
         mesh['serve_ifaces'] = mfl.system_interfaces()
         mesh['share_interface'] = mfl.query_setting('share_interface')
         mesh['serve_interface'] = mfl.query_setting('serve_interface')
-        mesh['hostname'] = mfl.system_hostname()
-        mesh['callsign']  = mfl.query_setting('callsign')
-        if (mesh.get('ham_mesh', '')): # default hostname to callsign_hostname
-            mesh['hostname'] = '%s-%s' % (mesh['callsign'], mfl.system_hostname())
         return render_template('mesh.html', mesh=mesh)
 
 # List
@@ -123,7 +120,7 @@ def settings():
         settings['callsign'] = mfl.query_setting('callsign')
         settings['listen_port'] = mfl.query_setting('listen_port')
         settings['listen_ip'] = mfl.query_setting('listen_ip')
-        return render_template('settings.html', settings=settings)
+        return render_template('settings.html', settings = settings)
 
 @app.route('/services', methods=['GET', 'POST'])
 @app.route('/services/<action>', methods=['GET', 'POST'])
@@ -136,12 +133,19 @@ def services(action = 'display', service_id = None):
         if (request.values.get('save')):
             mfl.upsert_service(request.values)
         if (action == 'add'):
-            return render_template('servicesmod.html', service = {}, button = 'Add')
-        if (action == 'edit' and service_id):
-            service = mfl.query_service(service_id)[0]
-            return render_template('servicesmod.html', service = service, button = 'Save')
+            return render_template('servicesadd.html')
+        elif (action == 'delete' and service_id):
+            mfl.delete_service(service_id)
         services = mfl.query_services()
-        return render_template('services.html', services = services)
+
+        #mfl.make_olsrd_config(escape(request.values.get('iface')),
+        #            escape(request.values.get('address')),
+        #            mfl.system_hostname(),
+        #            1 if (request.values.get('share_iface')) else 0,
+        #            escape(request.values.get('olsrd_key')),
+        #            mfl.query_services()) # Generate olsrd_config
+
+        return render_template('services.html', services = services, hostname = mfl.system_hostname())
 
 # Just reboot.
 @app.route('/reboot')

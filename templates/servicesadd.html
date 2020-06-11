@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<h1>Service Add</h1>
+
+<form method="post" action="/services">
+<input type="hidden" name="save" value="1">
+<table>
+	<tr><td>Name</td><td><input type="text" name="name"></td></tr>
+	<tr><td>Host</td><td><input type="text" name="host"></td></tr>
+	<tr><td>Port</td><td><input type="number" name="port" min="0" max="65535" size="5"></td></tr>
+	<tr><td>Protocol</td><td><input type="text" name="protocol"></td></tr>
+	<tr><td>Local Port</td><td><input type="number" name="local_port" min="0" max="65535" size="5"></td></tr>
+	<tr><td>Path</td><td><input type="text" name="path"></td></tr>
+</table>
+<input type="submit" value="Add">
+</form>
+
+{% endblock %}

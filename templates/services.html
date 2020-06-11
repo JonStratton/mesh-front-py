@@ -3,22 +3,19 @@
 
 {% block body %}
 
-<table border=0>
-<tr><th>Name</th><th>Host</th><th>Port</th><th>Protocol</th><th>Local Port</th><th>Service URL</th></tr>
+<table>
+	<tr><th>Name</th><th>Host</th><th>Port</th><th>URL</th></tr>
 {% for service in services %}
-<tr><form method="post" action="/servicemod">
-<input type="hidden" name="id" value="{{ service.name }}" readonly>
-	<td><input type="text" name="name" value="{{ service.name }}" readonly></td>
-	<td><input type="text" name="host" value="{{ service.host }}" readonly></td>
-	<td><input type="number" name="port" value="{{ service.port }}" readonly></td>
-	<td><input type="text" name="protocol" value="{{ service.protocol }}" readonly></td>
-	<td><input type="number" name="local_port" value="{{ service.local_port }}" readonly></td>
-	<td><input type="text" name="url" value="{{ service.url }}" readonly></td>
-	<td>XXX</td>
-</form></tr>
+	<tr><td>{{ service.name }}</td>
+		<td>{{ service.host }}</td>
+		<td>{{ service.port }}</td>
+		<td>{{ service.protocol }}<b>://{{ hostname }}:</b>{{ service.local_port }}<b>/</b>{{ service.path }}</td>
+		<td><form method="get" action="/services/delete/{{ service.service_id }}"><button type="submit">Delete</button></form></td>
+	</tr>
 {% endfor %}
+</table>
 
-<form method="get" action="/servicesmod">
+<form method="get" action="/services/add">
 	<button type="submit">Add Service</button>
 </form>
 </table>

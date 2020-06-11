@@ -17,26 +17,30 @@ def mesh_get_defaults(wifi_network):
     mesh = {}
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
-    mesh['inet'] = 'static'
-    mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
-    mesh['netmask'] = '255.0.0.0'
+    mesh['type'] = 'olsr'
+    mesh['ham_mesh'] = 0
+    mesh['hostname'] = system_hostname()
 
     # LibreMesh (Adhoc)
-    if (mesh['wireless_essid'] == 'LibreMesh.org' or mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE'):
-        mesh['type'] = 'batman'
-
-    # freifunk.net
     # https://github.com/rubo77/batman-connect/blob/master/batman-connect
-    if (mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
+    if (mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE' or mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
         mesh['type'] = 'batman'
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
     if (mesh['wireless_essid'].startswith('AREDN-') or mesh['wireless_essid'].startswith('BroadbandHamnet-')):
         mesh['ham_mesh'] = 1
-        mesh['type'] = 'olsr'
     if (mesh['wireless_channel'] == '-1' or mesh['wireless_channel'] == '-2'):
         mesh['ham_mesh'] = 1
+
+    # Now that we have these things, what do we set the defaults too
+    if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
+        mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
+
+    if (mesh['type'] == 'olsr'):
+        mesh['inet'] = 'static'
+        mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
+        mesh['netmask'] = '255.0.0.0'
 
     return(mesh)
 
@@ -124,13 +128,20 @@ def upsert_service(service):
     name = service.get('name', None)
     host = service.get('host', None)
     port = service.get('port', None)
-    protocal = service.get('protocal', None)
+    protocol = service.get('protocol', None)
     local_port = service.get('local_port', None)
     path = service.get('path', None)
 
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('INSERT INTO services VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(service_id) DO UPDATE SET name=excluded.name, host=excluded.host, port=excluded.port, protocal=excluded.protocal, local_port=excluded.local_port, path=excluded.path;', (service_id, name, host, port, protocal, local_port, path) )
+    c.execute('INSERT INTO services VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(service_id) DO UPDATE SET name=excluded.name, host=excluded.host, port=excluded.port, protocol=excluded.protocol, local_port=excluded.local_port, path=excluded.path;', (service_id, name, host, port, protocol, local_port, path) )
+    conn.commit()
+    return(0)
+
+def delete_service(service_id):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('DELETE FROM services WHERE service_id = ?;', (service_id, ) )
     conn.commit()
     return(0)
 
@@ -138,9 +149,9 @@ def query_services(service_id = None):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     if (service_id):
-        c.execute('SELECT service_id, name, host, port, protocal, local_port, path FROM services WHERE service_id = ?;', (service_id, ))
+        c.execute('SELECT service_id, name, host, port, protocol, local_port, path FROM services WHERE service_id = ?;', (service_id, ))
     else:
-        c.execute('SELECT service_id, name, host, port, protocal, local_port, path FROM services;')
+        c.execute('SELECT service_id, name, host, port, protocol, local_port, path FROM services;')
     columns = list(map(lambda x: x[0], c.description))
     columns_length = len(columns)
     
@@ -308,11 +319,11 @@ def make_interface_config(interfaces):
         f.write(output_from_parsed_template)
     return(0)
 
-def make_olsrd_config(interface, address, hostname, share_iface, olsrd_key):
+def make_olsrd_config(interface, address, hostname, share_iface, olsrd_key, services):
     config_file = '/etc/olsrd/olsrd.conf'
     template = env.get_template('olsrd.conf')
     output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname,
-            olsrd_key=olsrd_key, share_iface=share_iface)
+            olsrd_key=olsrd_key, share_iface=share_iface, services=services)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
@@ -349,7 +360,7 @@ def setup_db():
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
     c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_address text, wireless_mode text, wireless_essid text, wireless_channel text)')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
-    c.execute('CREATE TABLE services (service_id integer PRIMARY KEY AUTOINCREMENT NOT NULL, name text, host text, port integer, protocal text, local_port integer, path text);')
+    c.execute('CREATE TABLE services (service_id integer PRIMARY KEY AUTOINCREMENT NOT NULL, name text, host text, port integer, protocol text, local_port integer, path text);')
     conn.commit()
     conn.close()
     return(0)
