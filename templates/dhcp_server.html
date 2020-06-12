@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<h1>DHCP Server</h1>
+
+<form method="post">
+<input type="hidden" name="save" value="1">
+<table>
+<tr><td>Interface</td><td>
+	<select name="dhcp_server_interface">
+		<option></option>
+		{% for interface in interfaces %}
+			<option {% if interface == dhcp_server.dhcp_server_interface %}selected{% endif %}>{{interface}}</option>
+		{% endfor %}
+	</select></td></tr>
+<tr><td>Type</td><td><input type="text" name="inet" value="{{dhcp_server.inet}}"></td></tr>
+<tr><td>IP Address</td><td><input type="text" name="address" value="{{dhcp_server.address}}"></td></tr>
+<tr><td>Netmask</td><td><input type="text" name="netmask" value="{{dhcp_server.netmask}}"></td></tr>
+<tr><td>IP Start</td><td><input type="number" name="ip_start" value="{{dhcp_server.ip_start}}"></td></tr>
+<tr><td>IP End</td><td><input type="number" name="ip_end" value="{{dhcp_server.ip_end}}"></td></tr>
+</table>
+<input type="submit" value="Save">
+</form>
+<br />
+
+{% endblock %}

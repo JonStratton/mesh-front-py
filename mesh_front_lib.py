@@ -21,20 +21,20 @@ def refresh_configs():
     make_olsrd_config(query_setting('mesh_interface'),
         '10.4.65.173', # TODO, Mesh iface IP
         system_hostname(),
-        1 if (query_setting('share_iface')) else 0,
+        1 if (query_setting('gateway_interface')) else 0,
         query_setting('olsrd_key'),
         query_services())
     make_olsrd_key(query_setting('olsrd_key'))
 
     # Bridge Interfaces if sharing internet
-    if (query_setting('share_iface')):
-        system_bridge_interfaces(query_setting('mesh_interface'), query_setting('share_iface'))
+    if (query_setting('gateway_interface')):
+        system_bridge_interfaces(query_setting('mesh_interface'), query_setting('gateway_interface'))
     else:
         system_clear_iptables()
 
     # TODO, DHCP Server if serving internet
-    if (query_setting('serve_iface')):
-        pass
+    if (query_setting('dhcp_server_interface')):
+        make_dnsmasq_conf('TODO')
     else:
 	pass
     return(0)
@@ -384,6 +384,13 @@ def make_hostname_and_hosts(hostname):
         f.write(output_from_parsed_template)
     return(0)
 
+def make_dnsmasq_conf(XXXX):
+    config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
+    template = env.get_template('mesh-front-dnsmasq.conf')
+    output_from_parsed_template = template.render(olsrd_key=XXXX)
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
 
 #########
 # Setup #

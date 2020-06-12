@@ -18,22 +18,26 @@ for o, a in myopts:
 # Mfl functions templates can call directly
 app.jinja_env.globals.update(system_hostname=mfl.system_hostname)
 
+def escape_request(request): # Cant help but think Im redoing something built in here...
+    escaped_request = {}
+    for key in request:
+        escaped_request[escape(key)] = escape(request.get(key))
+    return escaped_request
+
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
         # If an Interface is passed in, update it
-        if (request.values.get('save')):
-            interface_update = {}
-            for key in request.values:
-                interface_update[escape(key)] = escape(request.values.get(key))
-            mfl.upsert_interface(interface_update)
+        escaped_request = escape_request(request.values)
+        if (escaped_request.get('save')):
+            mfl.upsert_interface(escaped_request)
             mfl.refresh_configs()
         # If we have an interface, only get it
         interface = None
-        if (request.values.get('interface')):
-            interface = escape(request.values.get('interface'))
+        if (escaped_request.get('interface')):
+            interface = escaped_request.get('interface')
         if_configs = mfl.query_interface_settings(interface)
         return render_template('ifconfig.html', ifaces=if_configs)
 
@@ -50,45 +54,50 @@ def mesh():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
+        escaped_request = escape_request(request.values)
         if (request.values.get('save')): # Save settings and generate system files
-            mfl.upsert_setting('mesh_interface', escape(request.values.get('iface')))
-            mfl.upsert_setting('ham_mesh', escape(request.values.get('ham_mesh')))
-            mfl.upsert_setting('olsrd_key', escape(request.values.get('olsrd_key')))
-            mfl.upsert_setting('share_interface', escape(request.values.get('share_iface')))
-            mfl.upsert_setting('serve_interface', escape(request.values.get('serve_iface')))
-            mfl.system_hostname(escape(request.values.get('hostname')))
-            mfl.upsert_interface(request.values) # TODO, Escape this
+            mfl.upsert_setting('mesh_interface', escaped_request.get('mesh_interface'))
+            mfl.upsert_setting('olsrd_key', escaped_request.get('olsrd_key'))
+            mfl.upsert_setting('gateway_interface', escaped_request.get('gateway_interface'))
+            mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
+            mfl.system_hostname(escaped_request.get('hostname'))
+
+            mesh_interface_settings = escaped_request
+            mesh_interface_settings['iface'] = mesh_interface_settings['mesh_interface'] 
+            mfl.upsert_interface(mesh_interface_settings)
+
             mfl.refresh_configs()
         mesh = {}
         if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
-            mesh = mfl.mesh_get_defaults(request.values) # TODO, Escape this
+            mesh = mfl.mesh_get_defaults(escaped_request)
         elif (mfl.query_setting('mesh_interface')):
-            mesh_interface_settings = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
-            mesh = mesh_interface_settings
-        mesh['ifaces'] = mfl.system_interfaces('w')
-        mesh['share_ifaces'] = mfl.system_interfaces()
-        mesh['serve_ifaces'] = mfl.system_interfaces()
-        mesh['share_interface'] = mfl.query_setting('share_interface')
-        mesh['serve_interface'] = mfl.query_setting('serve_interface')
-        return render_template('mesh.html', mesh=mesh)
+            mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+        mesh['wireless_interfaces'] = mfl.system_interfaces('w')
+        mesh['interfaces'] = mfl.system_interfaces()
+        mesh['gateway_interface'] = mfl.query_setting('gateway_interface')
+        mesh['dhcp_server_interface'] = mfl.query_setting('dhcp_server_interface')
+        wireless_interfaces = mfl.system_interfaces('w')
+        interfaces = mfl.system_interfaces()
+        return render_template('mesh.html', wireless_interfaces = wireless_interfaces, interfaces = interfaces, mesh = mesh)
 
 # List
 @app.route('/neighbors')
 def neighbors():
     neighbors = mfl.mesh_get('links')
-    return render_template('neighbors.html', neighbors=neighbors)
+    return render_template('neighbors.html', neighbors = neighbors)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     #if not session.get('logged_in'):
     #   return render_template('login.html')
     #else:
+        escaped_request = escape_request(request.values)
         if (request.values.get('save')):
-            mfl.system_hostname(escape(request.values.get('hostname')))
-            mfl.upsert_setting('callsign', escape(request.values.get('callsign')))
-            mfl.upsert_setting('listen_port', escape(request.values.get('listen_port')))
-            mfl.upsert_setting('listen_ip', escape(request.values.get('listen_ip')))
-            if (request.values.get('password')):
+            mfl.system_hostname(escaped_request.get('hostname'))
+            mfl.upsert_setting('callsign', escaped_request.get('callsign'))
+            mfl.upsert_setting('listen_port', escaped_request.get('listen_port'))
+            mfl.upsert_setting('listen_ip', escaped_request.get('listen_ip'))
+            if (request.values.get('password')): # Get the raw password!
                 mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
             mfl.refresh_configs()
         settings = {}
@@ -106,8 +115,9 @@ def services(action = 'display', service_id = None):
     #   return render_template('login.html')
     #else:
         # TODO: page = request.args.get('page', default = 1, type = int)
-        if (request.values.get('save')):
-            mfl.upsert_service(request.values)
+        escaped_request = escape_request(request.values)
+        if (escaped_request.get('save')):
+            mfl.upsert_service(escaped_request)
             mfl.refresh_configs()
         if (action == 'add'):
             return render_template('servicesadd.html')
@@ -116,6 +126,35 @@ def services(action = 'display', service_id = None):
             mfl.refresh_configs()
         services = mfl.query_services()
         return render_template('services.html', services = services, hostname = mfl.system_hostname())
+
+@app.route('/dhcp_server', methods=['GET', 'POST'])
+def dhcp_server():
+    #if not session.get('logged_in'):
+    #   return render_template('login.html')
+    #else:
+        escaped_request = escape_request(request.values)
+        if (escaped_request.get('save') and escaped_request.get('dhcp_server_interface')):
+            mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
+            mfl.upsert_setting('dhcp_server_ip_start', escaped_request.get('ip_start'))
+            mfl.upsert_setting('dhcp_server_ip_end', escaped_request.get('ip_end'))
+
+            dhcp_settings = escaped_request
+            dhcp_settings['iface'] = dhcp_settings['dhcp_server_interface']
+            mfl.upsert_interface(dhcp_settings)
+            mfl.refresh_configs()
+        dhcp_server = {}
+        # If we are called with an interface, try to get the settings we have
+        if (mfl.query_setting('dhcp_server_interface')):
+            dhcp_server = mfl.query_interface_settings(mfl.query_setting('dhcp_server_interface'))[0]
+            dhcp_server['dhcp_server_interface'] = mfl.query_setting('dhcp_server_interface')
+        # If we dont have these after fetching the IF settings, its time to default them to the end of class B Internal
+        dhcp_server['inet'] = 'static'
+        dhcp_server['address'] = '172.31.254.1'
+        dhcp_server['netmask'] = '255.255.255.0'
+        dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start') if mfl.query_setting('dhcp_server_ip_start') else 100
+        dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end') if mfl.query_setting('dhcp_server_ip_end') else 200
+        interfaces = mfl.system_interfaces()
+        return render_template('dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
 
 # Just reboot.
 @app.route('/reboot')

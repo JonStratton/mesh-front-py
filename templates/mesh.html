@@ -8,9 +8,9 @@
 <input type="hidden" name="save" value="1">
 <table>
 <tr><td>Interface</td><td>
-	<select name="iface">
-		{% for iface in mesh.ifaces %}
-			<option {% if mesh.iface == iface %}selected{% endif %}>{{iface}}</option>
+	<select name="mesh_interface">
+		{% for wireless_interface in wireless_interfaces %}
+			<option {% if wireless_interface == mesh_interface %}selected{% endif %}>{{wireless_interface}}</option>
 		{% endfor %}
 	</select></td></tr>
 <tr><td>Interface Type</td><td><input type="text" name="inet" value="{{mesh.inet}}"></td></tr>
@@ -28,18 +28,18 @@
 
 <tr><td>Hostname</td><td><input type="text" name="hostname" value="{{mesh.hostname}}"></td></tr>
 
-<tr><td>Share Internet Interface</td><td>
-	<select name="share_iface">
+<tr><td>Act as Internet Gatway on:</td><td>
+	<select name="gateway_interface">
 		<option></option>
-		{% for iface in mesh.share_ifaces %}
-		<option {% if iface == mesh.share_interface %}selected{% endif %}>{{iface}}</option>
+		{% for interface in interfaces %}
+		<option {% if interface == mesh.gateway_interface %}selected{% endif %}>{{interface}}</option>
 		{% endfor %}
 	</select></td></tr>
-<tr><td>Serve Local Interface</td><td>
-	<select name="serve_iface">
+<tr><td>Act as Local DHCP Server on:</td><td>
+	<select name="dhcp_server_interface">
 		<option></option>
-		{% for iface in mesh.serve_ifaces %}
-		<option {% if iface == mesh.serve_interface %}selected{% endif %}>{{iface}}</option>
+		{% for interface in interfaces %}
+		<option {% if interface == mesh.dhcp_server_interface %}selected{% endif %}>{{interface}}</option>
 		{% endfor %}
 	</select></td></tr>
 </table>
