@@ -17,6 +17,7 @@ def refresh_configs():
     interfaces = query_interface_settings()
     make_interface_config(interfaces)
 
+    # TODO, if Mesh IF and OLRS
     # Make olrs Configs if olrs
     make_olsrd_config(query_setting('mesh_interface'),
         '10.4.65.173', # TODO, Mesh iface IP
@@ -34,7 +35,7 @@ def refresh_configs():
 
     # TODO, DHCP Server if serving internet
     if (query_setting('dhcp_server_interface')):
-        make_dnsmasq_conf('TODO')
+        make_dnsmasq_conf()
     else:
 	pass
     return(0)
@@ -384,10 +385,18 @@ def make_hostname_and_hosts(hostname):
         f.write(output_from_parsed_template)
     return(0)
 
-def make_dnsmasq_conf(XXXX):
+def make_dnsmasq_conf():
     config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
+    interfaces = query_interface_settings()
+    dhcp_interface = query_setting('dhcp_server_interface')
+    dhcp_server = query_interface_settings(dhcp_interface)[0]
+    dhcp_server['ip_start'] = query_setting('dhcp_server_ip_start')
+    dhcp_server['ip_end'] = query_setting('dhcp_server_ip_end')
+    dhcp_server['dns1'] = query_setting('dns1')
+    dhcp_server['dns2'] = query_setting('dns2')
+
     template = env.get_template('mesh-front-dnsmasq.conf')
-    output_from_parsed_template = template.render(olsrd_key=XXXX)
+    output_from_parsed_template = template.render(interfaces = interfaces, dhcp_interface = dhcp_interface, dhcp_server = dhcp_server, hostname = system_hostname())
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
