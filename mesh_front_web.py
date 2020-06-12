@@ -26,9 +26,9 @@ def escape_request(request): # Cant help but think Im redoing something built in
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         # If an Interface is passed in, update it
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save')):
@@ -43,17 +43,17 @@ def if_config():
 
 @app.route('/scan')
 def scan():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         networks = mfl.system_wifi_networks()
         return render_template('scan.html', networks=networks)
 
 @app.route('/mesh', methods=['GET', 'POST'])
 def mesh():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')): # Save settings and generate system files
             mfl.upsert_setting('mesh_interface', escaped_request.get('mesh_interface'))
@@ -81,16 +81,16 @@ def mesh():
         return render_template('mesh.html', wireless_interfaces = wireless_interfaces, interfaces = interfaces, mesh = mesh)
 
 # List
-@app.route('/neighbors')
-def neighbors():
+@app.route('/status')
+def status():
     neighbors = mfl.mesh_get('links')
-    return render_template('neighbors.html', neighbors = neighbors)
+    return render_template('status.html', neighbors = neighbors)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')):
             mfl.system_hostname(escaped_request.get('hostname'))
@@ -111,9 +111,9 @@ def settings():
 @app.route('/services/<action>', methods=['GET', 'POST'])
 @app.route('/services/<action>/<service_id>', methods=['GET', 'POST'])
 def services(action = 'display', service_id = None):
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         # TODO: page = request.args.get('page', default = 1, type = int)
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save')):
@@ -129,9 +129,9 @@ def services(action = 'display', service_id = None):
 
 @app.route('/dhcp_server', methods=['GET', 'POST'])
 def dhcp_server():
-    #if not session.get('logged_in'):
-    #   return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save') and escaped_request.get('dhcp_server_interface')):
             mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
@@ -159,27 +159,30 @@ def dhcp_server():
 # Just reboot.
 @app.route('/reboot')
 def reboot():
-    #if not session.get('logged_in'):
-    #    return render_template('login.html')
-    #else:
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
         mfl.system_reboot()
-        return neighbors()
+        return status()
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def do_admin_login():
-    password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
-    if (mfl.user_auth(request.form['username'], password_hash)):
-        session['logged_in'] = True
-    return neighbors()
+    escaped_request = escape_request(request.values)
+    if (escaped_request.get('username') and escaped_request.get('password')):
+        password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
+        if (mfl.user_auth(request.form['username'], password_hash)):
+            session['logged_in'] = True
+            return status()
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session['logged_in'] = False
-    return neighbors()
+    return status()
 
 @app.route('/')
 def home():
-    return neighbors()
+    return status()
 
 def first_run():
     mfl.setup_db()
