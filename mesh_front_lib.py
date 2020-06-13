@@ -207,6 +207,7 @@ def query_services(service_id = None):
 
 def system_hostname(new_hostname = None):
     if (new_hostname):
+        new_hostname = re.sub('[^0-9a-zA-Z\-]+', '', new_hostname)
         cmd = 'sudo hostname %s' % (new_hostname)
         code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
         make_hostname_and_hosts(new_hostname)
@@ -220,12 +221,15 @@ def system_reboot():
     return(code)
 
 def system_set_interface_state(interface, state):
+    interface = re.sub('[^0-9a-zA-Z]+', '', interface)
+    state = re.sub('[^a-zA-Z]+', '', state)
     cmd = 'sudo ip link set %s %s' % (interface, state)
     code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
     return(code)
 
 def system_get_interface_state(interface):
     if_state = ''
+    interface = re.sub('[^0-9a-zA-Z]+', '', interface)
     with open('/sys/class/net/%s/operstate' % (interface), 'r') as f:
         if_state = f.readline().replace('\n', '')
     return if_state
@@ -241,6 +245,8 @@ def system_interfaces(if_type = None):
 
 # Bridge Interfaces if sharing.
 def system_bridge_interfaces(w_iface, e_iface):
+    w_iface = re.sub('[^0-9a-zA-Z]+', '', w_iface)
+    e_iface = re.sub('[^0-9a-zA-Z]+', '', e_iface)
     cmds = [ 'sudo iptables -t nat -A POSTROUTING -o %s -j MASQUERADE' % (e_iface),
             'sudo iptables -A FORWARD -i %s -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT' % (e_iface, w_iface),
             'sudo iptables -A FORWARD -i %s -o %s -j ACCEPT' % (w_iface, e_iface),
