@@ -19,25 +19,18 @@ def refresh_configs():
 
     # TODO, if Mesh IF and OLRS
     # Make olrs Configs if olrs
-    make_olsrd_config(query_setting('mesh_interface'),
-        '10.4.65.173', # TODO, Mesh iface IP
-        system_hostname(),
-        1 if (query_setting('gateway_interface')) else 0,
-        query_setting('olsrd_key'),
-        query_services())
+    make_olsrd_config()
     make_olsrd_key(query_setting('olsrd_key'))
 
     # Bridge Interfaces if sharing internet
     if (query_setting('gateway_interface')):
         system_bridge_interfaces(query_setting('mesh_interface'), query_setting('gateway_interface'))
-    else:
+    else: # Clear the bridge otherwise
         system_clear_iptables()
 
-    # TODO, DHCP Server if serving internet
-    if (query_setting('dhcp_server_interface')):
-        make_dnsmasq_conf()
-    else:
-	pass
+    # DHCP Server if serving internet
+    make_dnsmasq_conf()
+
     return(0)
 
 
@@ -361,11 +354,17 @@ def make_interface_config(interfaces):
         f.write(output_from_parsed_template)
     return(0)
 
-def make_olsrd_config(interface, address, hostname, share_iface, olsrd_key, services):
+def make_olsrd_config():
     config_file = '/etc/olsrd/olsrd.conf'
+
+    interface = query_setting('mesh_interface')
+    if_settings = query_interface_settings(interface)[0]
+    address = if_settings['address']
+    olsrd_key = query_setting('olsrd_key')
+
     template = env.get_template('olsrd.conf')
-    output_from_parsed_template = template.render(interface=interface, address=address, hostname=hostname,
-            olsrd_key=olsrd_key, share_iface=share_iface, services=services)
+    output_from_parsed_template = template.render(interface=interface, address=address, hostname=system_hostname(),
+            olsrd_key=olsrd_key, share_iface=query_setting('gateway_interface'), services=query_services())
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
@@ -393,6 +392,7 @@ def make_hostname_and_hosts(hostname):
 
 def make_dnsmasq_conf():
     config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
+
     interfaces = query_interface_settings()
     dhcp_interface = query_setting('dhcp_server_interface')
     dhcp_server = query_interface_settings(dhcp_interface)[0]

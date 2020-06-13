@@ -97,6 +97,8 @@ def settings():
             mfl.upsert_setting('callsign', escaped_request.get('callsign'))
             mfl.upsert_setting('listen_port', escaped_request.get('listen_port'))
             mfl.upsert_setting('listen_ip', escaped_request.get('listen_ip'))
+            mfl.upsert_setting('dns1', escaped_request.get('dns1'))
+            mfl.upsert_setting('dns2', escaped_request.get('dns2'))
             if (request.values.get('password')): # Get the raw password!
                 mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
             mfl.refresh_configs()
@@ -105,6 +107,8 @@ def settings():
         settings['callsign'] = mfl.query_setting('callsign')
         settings['listen_port'] = mfl.query_setting('listen_port')
         settings['listen_ip'] = mfl.query_setting('listen_ip')
+        settings['dns1'] = mfl.query_setting('dns1')
+        settings['dns2'] = mfl.query_setting('dns2')
         return render_template('settings.html', settings = settings)
 
 @app.route('/services', methods=['GET', 'POST'])
@@ -114,7 +118,6 @@ def services(action = 'display', service_id = None):
     if not session.get('logged_in'):
        return render_template('login.html')
     else:
-        # TODO: page = request.args.get('page', default = 1, type = int)
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save')):
             mfl.upsert_service(escaped_request)

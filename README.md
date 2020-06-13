@@ -31,17 +31,6 @@ The installer will attempt to back up some current system files, and make new ve
 
 `$ ./mesh_front_web.py`
 
-If everything launches properly, you should see something like the following:
-
-`New Password Set. Log in with user 'admin' and password 'g{8sLvuzI3'.
-
- * Serving Flask app "mesh_front_web" (lazy loading)
- * Environment: production
-   WARNING: Do not use the development server in a production environment.
-   Use a production WSGI server instead.
- * Debug mode: off
- * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)`
-
 If this is the first run, it will try to automatically generate an admin password. You should see the password during the first run. You can change this any time from the web front-end, or you can modify it from command line with:
 
 `./mesh_front_web.py -p "Super Secret Password"`
