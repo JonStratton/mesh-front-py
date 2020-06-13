@@ -17,6 +17,7 @@ for o, a in myopts:
 
 # Mfl functions templates can call directly
 app.jinja_env.globals.update(system_hostname=mfl.system_hostname)
+app.jinja_env.globals.update(query_setting=mfl.query_setting)
 
 def escape_request(request): # Cant help but think Im redoing something built in here...
     escaped_request = {}
@@ -34,6 +35,7 @@ def if_config():
         if (escaped_request.get('save')):
             mfl.upsert_interface(escaped_request)
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         # If we have an interface, only get it
         interface = None
         if (escaped_request.get('interface')):
@@ -67,6 +69,7 @@ def mesh():
             mfl.upsert_interface(mesh_interface_settings)
 
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         mesh = {}
         if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
             mesh = mfl.mesh_get_defaults(escaped_request)
@@ -102,6 +105,7 @@ def settings():
             if (request.values.get('password')): # Get the raw password!
                 mfl.upsert_user('admin', mfl.hash_password(request.values.get('password'), Salt).hexdigest())
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         settings = {}
         settings['hostname'] = mfl.system_hostname()
         settings['callsign'] = mfl.query_setting('callsign')
@@ -122,11 +126,13 @@ def services(action = 'display', service_id = None):
         if (escaped_request.get('save')):
             mfl.upsert_service(escaped_request)
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         if (action == 'add'):
             return render_template('servicesadd.html')
         elif (action == 'delete' and service_id):
             mfl.delete_service(service_id)
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         services = mfl.query_services()
         return render_template('services.html', services = services, hostname = mfl.system_hostname())
 
@@ -136,15 +142,18 @@ def dhcp_server():
        return render_template('login.html')
     else:
         escaped_request = escape_request(request.values)
-        if (escaped_request.get('save') and escaped_request.get('dhcp_server_interface')):
+        if (escaped_request.get('save')):
             mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
             mfl.upsert_setting('dhcp_server_ip_start', escaped_request.get('ip_start'))
             mfl.upsert_setting('dhcp_server_ip_end', escaped_request.get('ip_end'))
 
-            dhcp_settings = escaped_request
-            dhcp_settings['iface'] = dhcp_settings['dhcp_server_interface']
-            mfl.upsert_interface(dhcp_settings)
+            if (escaped_request.get('dhcp_server_interface')):
+                dhcp_settings = escaped_request
+                dhcp_settings['iface'] = dhcp_settings['dhcp_server_interface']
+                mfl.upsert_interface(dhcp_settings)
+
             mfl.refresh_configs()
+            mfl.upsert_setting('should_reboot', 'true')
         dhcp_server = {}
         # If we are called with an interface, try to get the settings we have
         if (mfl.query_setting('dhcp_server_interface')):
@@ -165,6 +174,7 @@ def reboot():
     if not session.get('logged_in'):
         return render_template('login.html')
     else:
+        mfl.upsert_setting('should_reboot', '')
         mfl.system_reboot()
         return status()
 

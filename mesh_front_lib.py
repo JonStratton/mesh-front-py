@@ -68,6 +68,7 @@ def mesh_get_defaults(wifi_network):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
+        mesh['wireless_address'] = ''
     elif (mesh['type'] == 'batman'):
         mesh['inet'] = 'auto'
 
@@ -233,6 +234,8 @@ def system_interfaces(if_type = None):
     for iface in os.listdir('/sys/class/net'):
         if (if_type) and (not iface.startswith(if_type)):
             continue
+        if (iface == 'lo'):
+            continue
         if_list.append(iface)
     return(if_list)
 
@@ -393,7 +396,7 @@ def make_hostname_and_hosts(hostname):
 def make_dnsmasq_conf():
     config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
 
-    interfaces = query_interface_settings()
+    interfaces = system_interfaces()
     dhcp_interface = query_setting('dhcp_server_interface')
     dhcp_server = query_interface_settings(dhcp_interface)[0]
     dhcp_server['ip_start'] = query_setting('dhcp_server_ip_start')
