@@ -8,7 +8,14 @@ system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key
 ###########
 install_mesh_front()
 {
-# 0. Back up system files.
+# 0. Install dependancies
+sudo apt-get update
+sudo apt-get install -y \
+	python-flask \
+	olsrd \
+	iptables-persistent
+
+# 1. Back up system files.
 for system_file in $system_files
 do
    if [ -e $system_file ]
@@ -18,13 +25,6 @@ do
       sudo touch $system_file
    fi
 done
-
-# 1. Install dependancies
-sudo apt-get update
-sudo apt-get install -y \
-	python-flask \
-	olsrd \
-	iptables-persistent
 
 # 2. Create Group if it doesnt exist
 sudo groupadd $myname
@@ -64,6 +64,7 @@ do
    then
       sudo mv $system_file.$myname-backup $system_file
    else
+      sudo rm $system_file.$myname-backup
    fi
 done
 
