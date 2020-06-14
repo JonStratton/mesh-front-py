@@ -7,7 +7,9 @@
 <a href="/dhcp_server">DHCP Server</a> |
 <a href="/ifconfig">Interfaces</a> |
 <a href="/settings">Settings</a> |
-<a href="/services">Services</a> |
+{% if query_setting('mesh_type') == 'olsr' %}
+<a href="/olsr_services">OLSR Services</a> |
+{% endif %}
 <a href="/logout">Logout</a> |
 {% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %}
 {% else %}

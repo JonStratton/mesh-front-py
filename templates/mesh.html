@@ -7,6 +7,12 @@
 <form method="post">
 <input type="hidden" name="save" value="1">
 <table>
+<tr><td>Mesh Type</td><td>
+	<select name="mesh_type">
+		{% for mesh_type in ['olsr', 'batman'] %}
+			<option {% if mesh.mesh_type == mesh_type %}selected{% endif %}>{{mesh_type}}</option>
+		{% endfor %}
+	</select></td></tr>
 <tr><td>Interface</td><td>
 	<select name="mesh_interface">
 		{% for wireless_interface in wireless_interfaces %}
@@ -24,7 +30,7 @@
 <tr><td>Wireless Channel</td><td><input type="number" name="wireless_channel" value="{{mesh.wireless_channel}}" min="-2" max="14"></td></tr>
 <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{mesh.wireless_essid}}"></td></tr>
 
-{% if mesh.type == 'olsr' %}
+{% if mesh.mesh_type == 'olsr' %}
 <tr><td>OLSRD Key</td><td><input type="text" name="olsrd_key" value="{{mesh.olsrd_key}}"></td></tr>
 {% endif %}
 

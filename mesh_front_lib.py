@@ -47,14 +47,14 @@ def mesh_get_defaults(wifi_network):
     mesh = {}
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
-    mesh['type'] = 'olsr'
+    mesh['mesh_type'] = 'olsr'
     mesh['ham_mesh'] = 0
     mesh['hostname'] = system_hostname()
 
     # LibreMesh (Adhoc)
     # https://github.com/rubo77/batman-connect/blob/master/batman-connect
     if (mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE' or mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
-        mesh['type'] = 'batman'
+        mesh['mesh_type'] = 'batman'
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
@@ -67,17 +67,17 @@ def mesh_get_defaults(wifi_network):
     if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
         mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
 
-    if (mesh['type'] == 'olsr'):
+    if (mesh['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
         mesh['wireless_address'] = ''
-    elif (mesh['type'] == 'batman'):
+    elif (mesh['mesh_type'] == 'batman'):
         mesh['inet'] = 'auto'
 
     return(mesh)
 
-def mesh_get(item = None):
+def olsr_get(item = None):
     # wget over python request just so you dont have to import??! Are you insane?!!
     data = []
     cmd = 'wget -qO- http://127.0.0.1:9090/%s' % (item)
@@ -446,6 +446,11 @@ def setup_initial_settings():
     # Pull in current interface settings
     for interface in system_interface_settings():
         upsert_interface(interface)
+
+    # Meshes and modules
+    upsert_setting('mesh_batman_available', '1' if (os.path.isfile('/usr/sbin/batctl')) else None)
+    upsert_setting('mesh_olsr_available', '1' if (os.path.isfile('/usr/sbin/olsrd')) else None)
+    upsert_setting('cjdns_available', '1' if (os.path.isfile('/opt/cjdns/cjdroute')) else None)
 
     return(0)
 

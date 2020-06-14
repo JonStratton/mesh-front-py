@@ -2,9 +2,10 @@
 
 {% block body %}
 
+{% if olsr_neighbors %}
 <table border=0>
 	<tr><th>IP</th><th>Link Quality</th><th>Link Cost</th></tr>
-{% for link in neighbors.links %}
+{% for link in olsr_neighbors.links %}
 <tr>
 	<td>{{ link.remoteIP }}</td>
 	<td>{{ link.linkQuality }}</td>
@@ -12,5 +13,6 @@
 </tr>
 {% endfor %}
 </table>
+{% endif %}
 
 {% endblock %}

@@ -58,6 +58,7 @@ def mesh():
     else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')): # Save settings and generate system files
+            mfl.upsert_setting('mesh_type', escaped_request.get('mesh_type'))
             mfl.upsert_setting('mesh_interface', escaped_request.get('mesh_interface'))
             mfl.upsert_setting('olsrd_key', escaped_request.get('olsrd_key'))
             mfl.upsert_setting('gateway_interface', escaped_request.get('gateway_interface'))
@@ -86,8 +87,10 @@ def mesh():
 # List
 @app.route('/status')
 def status():
-    neighbors = mfl.mesh_get('links')
-    return render_template('status.html', neighbors = neighbors)
+    olsr_neighbors = {}
+    if (mfl.query_setting('mesh_type') == 'olsr'):
+        olsr_neighbors = mfl.olsr_get('links')
+    return render_template('status.html', olsr_neighbors = olsr_neighbors)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -115,9 +118,9 @@ def settings():
         settings['dns2'] = mfl.query_setting('dns2')
         return render_template('settings.html', settings = settings)
 
-@app.route('/services', methods=['GET', 'POST'])
-@app.route('/services/<action>', methods=['GET', 'POST'])
-@app.route('/services/<action>/<service_id>', methods=['GET', 'POST'])
+@app.route('/olsr_services', methods=['GET', 'POST'])
+@app.route('/olsr_services/<action>', methods=['GET', 'POST'])
+@app.route('/olsr_services/<action>/<service_id>', methods=['GET', 'POST'])
 def services(action = 'display', service_id = None):
     if not session.get('logged_in'):
        return render_template('login.html')
@@ -128,13 +131,13 @@ def services(action = 'display', service_id = None):
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
         if (action == 'add'):
-            return render_template('servicesadd.html')
+            return render_template('olsr_servicesadd.html')
         elif (action == 'delete' and service_id):
             mfl.delete_service(service_id)
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
         services = mfl.query_services()
-        return render_template('services.html', services = services, hostname = mfl.system_hostname())
+        return render_template('olsr_services.html', services = services, hostname = mfl.system_hostname())
 
 @app.route('/dhcp_server', methods=['GET', 'POST'])
 def dhcp_server():
