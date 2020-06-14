@@ -10,12 +10,14 @@
 <input type="hidden" name="iface" value="{{iface.iface}}">
 <input type="hidden" name="save" value="1">
 <table>
-<tr><td>Type</td><td><input type="text" name="inet" value="{{iface.inet}}"></td></tr>
+<tr><td>Type</td><td><select name="inet">{% for inet in ['static', 'dhcp'] %}
+		<option {% if inet == iface.inet %}selected{% endif %}>{{inet}}</option>
+        {% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{iface.address}}"></td></tr>
 <tr><td>Netmask</td><td><input type="text" name="netmask" value="{{iface.netmask}}"></td></tr>
 {%if iface.iface.startswith('w') %}
     <tr><td>Wireless Mode</td><td><input type="text" name="wireless_mode" value="{{iface.wireless_mode}}"></td></tr>
-    <tr><td>Wireless Channel</td><td><input type="text" name="wireless_channel" value="{{iface.wireless_channel}}"></td></tr>
+    <tr><td>Wireless Channel</td><td><input type="number" name="wireless_channel" value="{{iface.wireless_channel}}" min="-2" max="14"></td></tr>
     <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{iface.wireless_essid}}"></td></tr>
 {% endif %}
 </table>

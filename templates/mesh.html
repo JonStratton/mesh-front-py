@@ -13,13 +13,15 @@
 			<option {% if wireless_interface == mesh_interface %}selected{% endif %}>{{wireless_interface}}</option>
 		{% endfor %}
 	</select></td></tr>
-<tr><td>Interface Type</td><td><input type="text" name="inet" value="{{mesh.inet}}"></td></tr>
+<tr><td>Interface Type</td><td><select name="inet">{% for inet in ['static', 'dhcp'] %}
+                <option {% if inet == mesh.inet %}selected{% endif %}>{{inet}}</option>
+        {% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{mesh.address}}"></td></tr>
 <tr><td>Netmask</td><td><input type="text" name="netmask" value="{{mesh.netmask}}"></td></tr>
 
 <tr><td>Wireless Address</td><td><input type="text" name="wireless_address" value="{{mesh.wireless_address}}"></td></tr>
 <tr><td>Wireless Mode</td><td><input type="text" name="wireless_mode" value="{{mesh.wireless_mode}}"></td></tr>
-<tr><td>Wireless Channel</td><td><input type="text" name="wireless_channel" value="{{mesh.wireless_channel}}"></td></tr>
+<tr><td>Wireless Channel</td><td><input type="number" name="wireless_channel" value="{{mesh.wireless_channel}}" min="-2" max="14"></td></tr>
 <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_essid" value="{{mesh.wireless_essid}}"></td></tr>
 
 {% if mesh.type == 'olsr' %}

@@ -163,8 +163,8 @@ def dhcp_server():
         dhcp_server['inet'] = 'static'
         dhcp_server['address'] = '172.31.254.1'
         dhcp_server['netmask'] = '255.255.255.0'
-        dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start') if mfl.query_setting('dhcp_server_ip_start') else 100
-        dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end') if mfl.query_setting('dhcp_server_ip_end') else 200
+        dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start') if mfl.query_setting('dhcp_server_ip_start') else '172.31.254.100'
+        dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end') if mfl.query_setting('dhcp_server_ip_end') else '172.31.254.200'
         interfaces = mfl.system_interfaces()
         return render_template('dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
 

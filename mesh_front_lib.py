@@ -29,7 +29,10 @@ def refresh_configs():
         system_clear_iptables()
 
     # DHCP Server if serving internet
-    make_dnsmasq_conf()
+    if (query_setting('dhcp_server_interface')):
+        make_dnsmasq_conf()
+    else:
+        clear_dnsmasq_conf()
 
     return(0)
 
@@ -408,6 +411,13 @@ def make_dnsmasq_conf():
     output_from_parsed_template = template.render(interfaces = interfaces, dhcp_interface = dhcp_interface, dhcp_server = dhcp_server, hostname = system_hostname())
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
+    return(0)
+
+# Clear it with an empty files, so we can keep its permissions
+def clear_dnsmasq_conf():
+    config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
+    with open(config_file, 'w') as f:
+        pass
     return(0)
 
 #########
