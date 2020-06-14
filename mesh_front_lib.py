@@ -82,7 +82,7 @@ def mesh_get(item = None):
     data = []
     cmd = 'wget -qO- http://127.0.0.1:9090/%s' % (item)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    cmd_return = ''.join(p.stdout.readlines())
+    cmd_return = ''.join([line.decode('utf-8') for line in p.stdout.readlines()])
     if (cmd_return):
         data = json.loads(cmd_return)
     return(data)
@@ -327,10 +327,11 @@ def system_wifi_networks(interface = None):
     split_col = re.compile('\s*:|=\s*')
     cmd = 'sudo iwlist %s scan' % (interface)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line in p.stdout.readlines():
+    for line_bytes in p.stdout.readlines():
+        line = line_bytes.decode('utf-8')
         if (line.startswith(interface)):
             continue
-        split_line = split_col.split( line.decode('utf-8') )
+        split_line = split_col.split(line)
         key = split_line[0].strip()
         value = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
         if key.endswith('Address'): # New record found
@@ -489,5 +490,5 @@ def hash_password(password, salt=''):
 
 # https://stackoverflow.com/questions/2030053/random-strings-in-python#2030081
 def randomword(length):
-    nonwhitespace = string.digits + string.letters + string.punctuation
+    nonwhitespace = string.digits + string.ascii_letters + string.punctuation
     return ''.join(random.choice(nonwhitespace) for i in range(length))
