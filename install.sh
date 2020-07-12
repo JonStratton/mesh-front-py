@@ -1,6 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
+install_packages="python-flask olsrd iptables-persistent"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 
 ###########
@@ -10,10 +11,15 @@ install_mesh_front()
 {
 # 0. Install dependancies
 sudo apt-get update
-sudo apt-get install -y \
-	python-flask \
-	olsrd \
-	iptables-persistent
+rm ./new_packages.txt
+for install_package in $install_packages
+do
+   is_new=`sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l`
+   if [ $is_new -eq 0 ]
+   then
+      echo $install_package >> ./new_packages.txt
+   fi
+done
 
 # 1. Back up system files.
 for system_file in $system_files
@@ -69,11 +75,17 @@ do
 done
 
 # 1. Install dependancies
-sudo apt-get remove --purge -y \
-	python-flask \
-	olsrd \
-	iptables-persistent
-sudo sudo apt autoremove -y
+if [ -e ./new_packages.txt ]
+then
+    install_packages=`cat ./new_packages.txt | tr '\n' ' '`
+fi
+
+for new_package in $install_packages
+do
+   sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y $new_package
+done
+sudo apt autoremove -y
+rm ./new_packages.txt
 
 # 2. Create Group if it doesnt exist
 if [ `grep $myname /etc/group | wc -l` ]
