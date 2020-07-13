@@ -3,6 +3,13 @@
 myname=mesh-front
 install_packages="python-flask olsrd iptables-persistent"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
+init="systemd"
+
+# Which init system do we use?
+if [ ! -e '/usr/bin/systemctl' ]
+then
+   init="sysV"
+fi
 
 ###########
 # Install #
@@ -14,8 +21,7 @@ sudo apt-get update
 rm ./new_packages.txt
 for install_package in $install_packages
 do
-   is_new=`sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l`
-   if [ $is_new -eq 0 ]
+   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l` -eq 0 ]
    then
       echo $install_package >> ./new_packages.txt
    fi
@@ -121,10 +127,21 @@ sudo chown :mesh-front /var/www/mesh-front-py/salt.txt
 sudo chmod g+r /var/www/mesh-front-py/salt.txt
 
 # Install service
-sudo cp install/mesh-front.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl start mesh-front.service
-sudo systemctl enable mesh-front.service
+if [ $init = "systemd" ]
+then
+    sudo cp install/mesh-front.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl start mesh-front.service
+    sudo systemctl enable mesh-front.service
+elif [ $init = "sysV" ]
+then
+    sudo useradd $myname --no-user-group --groups $myname --shell /usr/sbin/nologin
+    sudo cp install/mesh-front /etc/init.d/mesh-front
+    sudo chmod +x /etc/init.d/mesh-front
+    sudo update-rc.d mesh-front defaults
+    sudo update-rc.d mesh-front enable
+    sudo service mesh-front start
+fi
 }
 
 ####################
@@ -133,9 +150,20 @@ sudo systemctl enable mesh-front.service
 uninstall_mesh_front_system()
 {
 # Stop Service and uninstall
-sudo systemctl stop mesh-front.service
-sudo systemctl disable mesh-front.service
-sudo rm /etc/systemd/system/mesh-front.service
+
+if [ $init = "systemd" ]
+then
+    sudo systemctl stop mesh-front.service
+    sudo systemctl disable mesh-front.service
+    sudo rm /etc/systemd/system/mesh-front.service
+elif [ $init = "sysV" ]
+then
+    sudo service mesh-front stop
+    sudo update-rc.d mesh-front disable
+    sudo update-rc.d mesh-front remove
+    sudo rm /etc/init.d/mesh-front
+    sudo userdel $myname
+fi
 
 # Remove base directory
 sudo rm -rf /var/www/mesh-front-py/
