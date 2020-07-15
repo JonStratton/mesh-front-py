@@ -12,7 +12,7 @@ then
    init="sysV"
 fi
 
-if [ `cat /etc/issues | grep -i ubuntu` ]
+if [ `cat /etc/issue | grep -i ubuntu | wc -l` ]
 then
    distro="ubuntu"
    install_packages="python3-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev"
