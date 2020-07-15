@@ -1,14 +1,21 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python-flask olsrd iptables-persistent"
+install_packages="python-flask olsrd iptables-persistent dnsmasq iw"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 init="systemd"
+distro="debian"
 
 # Which init system do we use?
 if [ ! -e '/usr/bin/systemctl' ]
 then
    init="sysV"
+fi
+
+if [ `cat /etc/issues | grep -i ubuntu` ]
+then
+   distro="ubuntu"
+   install_packages="python3-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev"
 fi
 
 ###########
@@ -26,6 +33,21 @@ do
       echo $install_package >> ./new_packages.txt
    fi
 done
+
+# Download and build olrs
+if [ $distro = "ubuntu" ]
+then
+    cwd=`pwd`
+    cd /tmp
+    wget https://github.com/OLSR/olsrd/archive/master.zip
+    unzip master.zip
+    cd olsrd-master
+    make
+    sudo make install
+    make libs
+    sudo make libs_install
+    cd $cwd
+fi
 
 # 1. Back up system files.
 for system_file in $system_files

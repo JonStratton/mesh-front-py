@@ -325,29 +325,43 @@ def system_wifi_networks(interface = None):
 
     network  = {}
     split_col = re.compile('\s*:|=\s*')
-    cmd = 'sudo iwlist %s scan' % (interface)
+    split_first = re.compile('\s+|\(')
+    cmd = 'sudo iw %s scan' % (interface)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     for line_bytes in p.stdout.readlines():
         line = line_bytes.decode('utf-8')
-        if (line.startswith(interface)):
-            continue
-        split_line = split_col.split(line)
-        key = split_line[0].strip()
-        value = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
-        if key.endswith('Address'): # New record found
-            key = 'Address'
+
+        if line.startswith('BSS '): # New record found
             if (network):
-                net_list.append(network)
+                net_list.append(clean_network(network))
                 network = {}
-        network[key] = value
+            split_line = split_first.split(line)
+            key = split_line[0].strip()
+            network[key] = split_line[1].strip()
+
+        else:
+            split_line = split_col.split(line)
+            key = split_line[0].strip()
+            network[key] = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
+
     retval = p.wait
-    net_list.append(network)
+    net_list.append(clean_network(network))
 
     # Take down interface if it was set up
     if (if_upd):
         system_set_interface_state(interface, 'up')
 
     return net_list
+
+# Basically make the output from "iw XXX scan" look like "iwlist XXX scan" for some things.
+def clean_network(network):
+   clean_network = {}
+   clean_network['ESSID'] = network.get('SSID', '')
+   clean_network['Address'] = network.get('BSS', '')
+   clean_network['Quality'] = network.get('signal', '')
+   clean_network['Mode'] = 'Ad-Hoc' if network.get('capability', '').startswith('IBSS ') else 'normal'
+   clean_network['Channel'] = re.sub('[^0-9]','', network.get('DS Parameter set', '') )
+   return clean_network
 
 #############
 # Templates #
