@@ -28,8 +28,11 @@ case "$1" in
   stop)
         echo -n "Stopping $DESC: "
         start-stop-daemon --stop --quiet --exec $DAEMON --pidfile $PID_FILE
-	kill `cat $PID_FILE`
-        rm -f $PID_FILE
+	if [ -e $PID_FILE ]
+	then
+		kill `cat $PID_FILE`
+		rm -f $PID_FILE
+	fi
         echo "$NAME."
         ;;
   restart|reload)

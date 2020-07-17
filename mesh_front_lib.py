@@ -4,7 +4,8 @@ import sqlite3, os, re, subprocess, socket, hashlib, random, string, json
 from jinja2 import Environment, FileSystemLoader
 
 # Defaults
-db_file  = 'db.sqlite3'
+root = os.path.dirname(os.path.realpath(__file__))
+db_file = os.path.join(root, 'db.sqlite3')
 env = Environment(loader=FileSystemLoader('templates'))
 
 ###################

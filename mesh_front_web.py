@@ -4,8 +4,10 @@ import sys, os, getopt
 from flask import Flask, render_template, request, session, escape
 import mesh_front_lib as mfl
 
-Salt     = mfl.salt('salt.txt')
-FirstRun = not os.path.isfile('db.sqlite3')
+# Defaults
+root     = os.path.dirname(os.path.realpath(__file__))
+Salt     = mfl.salt(os.path.join(root, 'salt.txt'))
+FirstRun = not os.path.isfile(os.path.join(root, 'db.sqlite3'))
 app      = Flask(__name__)
 
 # Reset password from command line
