@@ -380,15 +380,17 @@ def make_olsrd_config():
     config_file = '/etc/olsrd/olsrd.conf'
 
     interface = query_setting('mesh_interface')
-    if_settings = query_interface_settings(interface)[0]
-    address = if_settings['address']
-    olsrd_key = query_setting('olsrd_key')
+    ifes_settings = query_interface_settings(interface)
+    if ifes_settings:
+        if_settings = ifes_settings[0]
+        address = if_settings['address']
+        olsrd_key = query_setting('olsrd_key')
 
-    template = env.get_template('olsrd.conf')
-    output_from_parsed_template = template.render(interface=interface, address=address, hostname=system_hostname(),
-            olsrd_key=olsrd_key, share_iface=query_setting('gateway_interface'), services=query_services())
-    with open(config_file, 'w') as f:
-        f.write(output_from_parsed_template)
+        template = env.get_template('olsrd.conf')
+        output_from_parsed_template = template.render(interface=interface, address=address, hostname=system_hostname(),
+                olsrd_key=olsrd_key, share_iface=query_setting('gateway_interface'), services=query_services())
+        with open(config_file, 'w') as f:
+            f.write(output_from_parsed_template)
     return(0)
 
 def make_olsrd_key(olsrd_key):
