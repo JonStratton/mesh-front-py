@@ -46,6 +46,7 @@ then
     sudo make install
     make libs
     sudo make libs_install
+    sudo cp install/olsrd.init /etc/init.d/olsrd
     cd $cwd
 fi
 
@@ -75,7 +76,7 @@ sudo usermod -a -G $myname $installuser
 # 4. Add sudo access to group, and other generic install files
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
-sudo cp install/olsrd /etc/default/olsrd
+sudo cp install/olsrd.default /etc/default/olsrd
 
 # 5. Open System files to group
 for system_file in $system_files
@@ -158,7 +159,7 @@ then
 elif [ $init = "sysV" ]
 then
     sudo useradd $myname --no-user-group --groups $myname --shell /usr/sbin/nologin
-    sudo cp install/mesh-front /etc/init.d/mesh-front
+    sudo cp install/mesh-front.init /etc/init.d/mesh-front
     sudo chmod +x /etc/init.d/mesh-front
     sudo update-rc.d mesh-front defaults
     sudo update-rc.d mesh-front enable
