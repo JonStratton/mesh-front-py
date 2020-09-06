@@ -1,10 +1,9 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python-flask olsrd iptables-persistent dnsmasq iw"
+install_packages="python-flask iptables-persistent dnsmasq iw"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 init="systemd"
-distro="debian"
 
 # Which init system do we use?
 if [ ! -e '/usr/bin/systemctl' ]
@@ -14,7 +13,6 @@ fi
 
 if [ `cat /etc/issue | grep -i ubuntu | wc -l` -ne 0 ]
 then
-   distro="ubuntu"
    install_packages="python3-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev python-is-python3"
 fi
 
@@ -25,7 +23,10 @@ install_mesh_front()
 {
 # 0. Install dependancies
 sudo apt-get update
-rm ./new_packages.txt
+if [ -e ./new_packages.txt ]
+then
+   rm ./new_packages.txt
+fi
 for install_package in $install_packages
 do
    if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l` -eq 0 ]
@@ -35,20 +36,19 @@ do
 done
 
 # Download and build olrs
-if [ $distro = "ubuntu" ]
+if [ ! -e share/olsrd-master.tar.gz ]
 then
-    cwd=`pwd`
-    cd /tmp
-    wget https://github.com/OLSR/olsrd/archive/master.zip
-    unzip master.zip
-    cd olsrd-master
-    make
-    sudo make install
-    make libs
-    sudo make libs_install
-    sudo cp install/olsrd.init /etc/init.d/olsrd
-    cd $cwd
+   wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O share/olsrd-master.tar.gz
 fi
+tar xzf share/olsrd-master.tar.gz
+cd olsrd-master
+make
+sudo make install
+make libs
+sudo make libs_install
+cd ..
+rm -rf olsrd-master
+sudo cp install/olsrd.init /etc/init.d/olsrd
 
 # 1. Back up system files.
 for system_file in $system_files
