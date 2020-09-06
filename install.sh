@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python-flask iptables-persistent dnsmasq iw"
+install_packages="python-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 init="systemd"
 
@@ -35,7 +35,7 @@ do
    fi
 done
 
-# Download and build olrs
+# Download and build olrsd
 if [ ! -e share/olsrd-master.tar.gz ]
 then
    wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O share/olsrd-master.tar.gz
@@ -47,7 +47,6 @@ sudo make install
 make libs
 sudo make libs_install
 cd ..
-rm -rf olsrd-master
 sudo cp install/olsrd.init /etc/init.d/olsrd
 
 # 1. Back up system files.
@@ -124,6 +123,11 @@ fi
 
 # 3. remove access to group
 sudo rm /etc/sudoers.d/mesh-front-sudoers
+
+# 4. remove olsrd
+cd olsrd-master
+sudo make uninstall
+sudo make libs_uninstall
 }
 
 ##################
