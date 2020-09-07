@@ -36,6 +36,10 @@ do
 done
 
 # Download and build olrsd
+if [ ! -d share ]
+then
+   mkdir share
+fi
 if [ ! -e share/olsrd-master.tar.gz ]
 then
    wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O share/olsrd-master.tar.gz
@@ -48,6 +52,7 @@ make libs
 sudo make libs_install
 cd ..
 sudo cp install/olsrd.init /etc/init.d/olsrd
+sudo cp install/olsrd.default /etc/default/olsrd
 
 # 1. Back up system files.
 for system_file in $system_files
@@ -75,7 +80,6 @@ sudo usermod -a -G $myname $installuser
 # 4. Add sudo access to group, and other generic install files
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
-sudo cp install/olsrd.default /etc/default/olsrd
 
 # 5. Open System files to group
 for system_file in $system_files
@@ -128,6 +132,8 @@ sudo rm /etc/sudoers.d/mesh-front-sudoers
 cd olsrd-master
 sudo make uninstall
 sudo make libs_uninstall
+sudo rm /etc/init.d/olsrd
+sudo rm /etc/default/olsrd
 }
 
 ##################

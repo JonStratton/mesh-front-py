@@ -23,7 +23,7 @@
 #       02-Oct-2012
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/sbin/olsrd
+DAEMON=/usr/local/sbin/olsrd
 NAME=olsrd
 DESC=olsrd
 
