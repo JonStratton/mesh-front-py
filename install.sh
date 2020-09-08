@@ -53,6 +53,14 @@ sudo make libs_install
 cd ..
 sudo cp install/olsrd.init /etc/init.d/olsrd
 sudo cp install/olsrd.default /etc/default/olsrd
+if [ $init = "systemd" ]
+then
+    systemctl enable olsrd
+elif [ $init = "sysV" ]
+then
+    sudo update-rc.d olsrd defaults
+    sudo update-rc.d olsrd enable
+fi
 
 # 1. Back up system files.
 for system_file in $system_files
@@ -129,6 +137,13 @@ fi
 sudo rm /etc/sudoers.d/mesh-front-sudoers
 
 # 4. remove olsrd
+if [ $init = "systemd" ]
+then
+    systemctl disable olsrd
+elif [ $init = "sysV" ]
+then
+    sudo update-rc.d olsrd remove
+fi
 cd olsrd-master
 sudo make uninstall
 sudo make libs_uninstall
