@@ -17,6 +17,10 @@ class TestUtils(unittest.TestCase):
     def test_interfaces(self):
         interfaces = mfl.system_interfaces()
         self.assertTrue(interfaces)
+
+    def test_interface_settings(self):
+        interfaces = mfl.system_interface_settings('lo')
+        self.assertTrue(interfaces)
     
     def test_hostname(self):
         hostname = mfl.system_hostname()

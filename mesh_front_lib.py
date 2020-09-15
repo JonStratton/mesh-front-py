@@ -273,9 +273,9 @@ def system_clear_iptables():
 #############################
     # TODO, read the interfaces.d dir too
 
-def system_interface_settings():
-    interfaces = []
-    interface  = {}
+def system_interface_settings(interface):
+    interface_settings = {}
+    temp_iface = ''
     split_col = re.compile('\s+')
     with open('/etc/network/interfaces', 'r') as f:
         for line in f:
@@ -284,28 +284,17 @@ def system_interface_settings():
                continue
             elif (line.startswith('auto ')) or (line.startswith('source ')) or (line.startswith('allow-hotplug ')):
                continue # I just dont care about these right now
-            if (line.startswith('iface ')):
-               #New Interface. Add it to our list and start another
-               if (interface):
-                   interfaces.append(interface)
-               interface = {}
+
             split = split_col.split(line)
             split[0] = split[0].replace('-', '_') # Remove the dashes for sqlite col name
-            interface[split[0]] = split[1]
+            if ( split[0] == 'iface' ):
+               temp_iface = split[1]
+               interface_settings[temp_iface] = {}
+            interface_settings[temp_iface][split[0]] = split[1]
             if (len(split) > 3):
-               interface[split[2]] = split[3]
-    if (interface):
-        interfaces.append(interface)
+               interface_settings[temp_iface][split[2]] = split[3]
 
-    # For now, just dont load lo and default
-    interfaces_custom = []
-    for interface in interfaces:
-        iface = interface.get('iface')
-        if (iface == 'lo' or iface == 'default'):
-            continue
-        interfaces_custom.append(interface)
-
-    return(interfaces_custom)
+    return(interface_settings.get(interface, {}))
 
 ########################
 # System Wifi Networks #
@@ -461,8 +450,11 @@ def setup_initial_settings():
     upsert_setting('listen_ip', '0.0.0.0')
 
     # Pull in current interface settings
-    for interface in system_interface_settings():
-        upsert_interface(interface)
+    for iface in system_interfaces():
+        interface_settings = system_interface_settings(iface);
+        if not interface_settings:
+            interface_settings = {'iface': iface, 'inet': 'dhcp'}
+        upsert_interface(interface_settings)
 
     # Meshes and modules
     upsert_setting('mesh_batman_available', '1' if (os.path.isfile('/usr/sbin/batctl')) else None)
