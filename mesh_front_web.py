@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 __author__ = 'Jon Stratton'
 import sys, os, getopt
 from flask import Flask, render_template, request, session, escape

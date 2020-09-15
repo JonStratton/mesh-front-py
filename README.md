@@ -5,7 +5,7 @@ It takes inspiration (and indeed some configuration templates) from HSMM-pi (htt
 
 ## Goals
 1. Allow joining an existing mesh network fairly easily. If it sees an Ad Hoc network with an ESSID or Address it recognizes, it should be a matter of hitting the "Mesh" button on the "Scan" page. 
-1. As few dependencies as possible. Just ideally Python-flask(2 or 3), OLRS, and GNU/Linux system commands.
+1. As few dependencies as possible. Just ideally Python-flask, OLRS, and GNU/Linux system commands.
 1. Use the most common, light and shallow version of external dependencies as possible. 
 	1. Common so they will be supported as packages in most Distros for a while
 	1. Light/shallow so one unused inclusion doesn't cause a rewrite. I
@@ -16,7 +16,6 @@ It takes inspiration (and indeed some configuration templates) from HSMM-pi (htt
 ## Possible Future Enhancements
 1. Clean up the Mesh Network detection, and populate it with a configuration file.
 1. Work better with batman-adv.
-1. Add sysV init process, so it can run on Devuan and old versions of Debian.
 1. An optional CJDNS layer.
 1. A configuration option that allows the downloading of mesh-front-pi via the web frontend. 
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev"
+install_packages="python3-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev ifupdown"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 
 # Which init system do we use?
@@ -16,11 +16,6 @@ NetworkManager=0
 if [ -d '/etc/NetworkManager' ]
 then
    NetworkManager=1
-fi
-
-if [ `cat /etc/issue | grep -i ubuntu | wc -l` -ne 0 ]
-then
-   install_packages="python3-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev python-is-python3 ifupdown"
 fi
 
 ###########
@@ -90,7 +85,7 @@ then
     read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
 fi
 sudo usermod -a -G $myname $installuser
-#newgrp $myname
+newgrp $myname
 
 # 4. Add sudo access to group, and other generic install files
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
@@ -246,7 +241,7 @@ echo "Warning, mesh network services are still installed and enables. Run 'unins
 ########
 test_mesh_front()
 {
-python -m unittest -v mesh_front_lib_test.TestUtils
+python3 -m unittest -v mesh_front_lib_test.TestUtils
 }
 
 ########

@@ -7,6 +7,7 @@ iface lo inet loopback
 {% for iface in ifaces %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
+{%if iface.wireless_mode%}    pre-up sleep 5{% endif %}
 {%if iface.address%}    address {{iface.address}}{% endif %}
 {%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
 {%if iface.wireless_mode%}    wireless-mode {{iface.wireless_mode}}{% endif %}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 __author__ = 'Jon Stratton'
 import sqlite3, os, re, subprocess, socket, hashlib, random, string, json
 from jinja2 import Environment, FileSystemLoader

@@ -23,7 +23,7 @@ case "$1" in
 	echo -n "Starting $DISC: "
 	start-stop-daemon --start --quiet --background --chuid $USER:$USER --exec $DAEMON --pidfile $PID_FILE
         echo "$NAME."
-        echo $(pidof python $DAEMON) > $PID_FILE
+        echo $(pidof python3 $DAEMON) > $PID_FILE
         ;;
   stop)
         echo -n "Stopping $DESC: "

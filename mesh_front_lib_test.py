@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 __author__ = 'Jon Stratton'
 import sys, os, unittest
 sys.path.insert(1, 'lib/')
