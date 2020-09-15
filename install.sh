@@ -1,7 +1,7 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev"
+install_packages="python-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
 init="systemd"
 
@@ -56,6 +56,7 @@ sudo cp install/olsrd.default /etc/default/olsrd
 if [ $init = "systemd" ]
 then
     systemctl enable olsrd
+    systemctl start olsrd
 elif [ $init = "sysV" ]
 then
     sudo update-rc.d olsrd defaults
