@@ -13,7 +13,7 @@ fi
 
 if [ `cat /etc/issue | grep -i ubuntu | wc -l` -ne 0 ]
 then
-   install_packages="python3-flask iptables-persistent dnsmasq iw build-essential bison flex libgps-dev python-is-python3"
+   install_packages="python3-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev python-is-python3 ifupdown"
 fi
 
 ###########
