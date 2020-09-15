@@ -55,8 +55,7 @@ sudo cp install/olsrd.init /etc/init.d/olsrd
 sudo cp install/olsrd.default /etc/default/olsrd
 if [ $init = "systemd" ]
 then
-    systemctl enable olsrd
-    systemctl start olsrd
+    sudo systemctl enable olsrd
 elif [ $init = "sysV" ]
 then
     sudo update-rc.d olsrd defaults
