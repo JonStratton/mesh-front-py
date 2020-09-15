@@ -290,6 +290,9 @@ def system_interface_settings(interface):
             if ( split[0] == 'iface' ):
                temp_iface = split[1]
                interface_settings[temp_iface] = {}
+            elif ( not temp_iface ):
+               continue # Keep going until I get my first iface
+ 
             interface_settings[temp_iface][split[0]] = split[1]
             if (len(split) > 3):
                interface_settings[temp_iface][split[2]] = split[3]
