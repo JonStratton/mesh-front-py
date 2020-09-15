@@ -3,12 +3,19 @@
 myname=mesh-front
 install_packages="python-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev"
 system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
-init="systemd"
 
 # Which init system do we use?
+init="systemd"
 if [ ! -e '/usr/bin/systemctl' ]
 then
    init="sysV"
+fi
+
+# Do we need to work around Network Manager?
+NetworkManager=0
+if [ -d '/etc/NetworkManager' ]
+then
+   NetworkManager=1
 fi
 
 if [ `cat /etc/issue | grep -i ubuntu | wc -l` -ne 0 ]
@@ -95,6 +102,13 @@ do
    sudo chown :$myname $system_file
    sudo chmod g+w $system_file
 done
+
+# 6. Disable NetworkManager
+if [ $NetworkManager = 1 ]
+then
+   sudo systemctl stop NetworkManager
+   sudo systemctl disable NetworkManager
+fi
 }
 
 #############
@@ -149,6 +163,13 @@ sudo make uninstall
 sudo make libs_uninstall
 sudo rm /etc/init.d/olsrd
 sudo rm /etc/default/olsrd
+
+# 5. Disable NetworkManager
+if [ $NetworkManager = 1 ]
+then
+   sudo systemctl start NetworkManager
+   sudo systemctl enable NetworkManager
+fi
 }
 
 ##################
