@@ -10,7 +10,7 @@
 <input type="hidden" name="iface" value="{{iface.iface}}">
 <input type="hidden" name="save" value="1">
 <table>
-<tr><td>Type</td><td><select name="inet">{% for inet in ['static', 'dhcp'] %}
+<tr><td>Type</td><td><select name="inet">{% for inet in ['static', 'dhcp', 'manual'] %}
 		<option {% if inet == iface.inet %}selected{% endif %}>{{inet}}</option>
         {% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{iface.address}}"></td></tr>

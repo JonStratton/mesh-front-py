@@ -1,8 +1,12 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="python3-flask iptables-persistent dnsmasq iw wireless-tools build-essential bison flex libgps-dev ifupdown"
-system_files="/etc/network/interfaces /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
+install_packages="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
+system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
+
+# For OLSRD
+install_build_packages="build-essential bison flex libgps-dev"
+system_files_olsrd="/etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd"
 
 # Which init system do we use?
 init="systemd"
@@ -23,7 +27,7 @@ fi
 ###########
 install_mesh_front()
 {
-# 0. Install dependancies
+# 1. Install dependancies
 sudo apt-get update
 if [ -e ./new_packages.txt ]
 then
@@ -34,6 +38,55 @@ do
    if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l` -eq 0 ]
    then
       echo $install_package >> ./new_packages.txt
+   fi
+done
+
+# 2. Create Group if it doesnt exist
+sudo groupadd $myname
+installuser=`whoami`
+if [ $installuser = 'root' ]
+then
+    read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
+fi
+sudo usermod -a -G $myname $installuser
+#newgrp $myname
+
+# 3. Download and build olrsd
+install_olsrd
+
+# 4. Back up system files.
+for system_file in $system_files
+do
+   if [ -e $system_file ]
+   then
+      sudo cp $system_file $system_file.$myname-backup
+   else
+      sudo touch $system_file
+   fi
+   sudo chown :$myname $system_file
+   sudo chmod g+w $system_file
+done
+
+# 5. Add sudo access to group, and other generic install files
+sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
+sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
+
+# 6. Disable NetworkManager
+if [ $NetworkManager = 1 ]
+then
+   sudo systemctl stop NetworkManager
+   sudo systemctl disable NetworkManager
+fi
+}
+
+install_olsrd()
+{
+# Build stuff for olsrd only
+for install_build_package in $install_build_packages
+do 
+   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_build_package | grep "is already the newest version" | wc -l` -eq 0 ]
+   then
+      echo $install_build_package >> ./new_packages.txt
    fi
 done
 
@@ -64,46 +117,16 @@ then
     sudo update-rc.d olsrd enable
 fi
 
-# 1. Back up system files.
-for system_file in $system_files
+# Chmod the confit files
+for system_file_olsrd in $system_files_olsrd
 do
-   if [ -e $system_file ]
+   if [ ! -e $system_file_olsrd ]
    then
-      sudo cp $system_file $system_file.$myname-backup
-   else
-      sudo touch $system_file
+      sudo touch $system_file_olsrd
    fi
+   sudo chown :$myname $system_file_olsrd
+   sudo chmod g+w $system_file_olsrd
 done
-
-# 2. Create Group if it doesnt exist
-sudo groupadd $myname
-
-# 3. Add group to running user
-installuser=`whoami`
-if [ $installuser = 'root' ]
-then
-    read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
-fi
-sudo usermod -a -G $myname $installuser
-newgrp $myname
-
-# 4. Add sudo access to group, and other generic install files
-sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
-sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
-
-# 5. Open System files to group
-for system_file in $system_files
-do
-   sudo chown :$myname $system_file
-   sudo chmod g+w $system_file
-done
-
-# 6. Disable NetworkManager
-if [ $NetworkManager = 1 ]
-then
-   sudo systemctl stop NetworkManager
-   sudo systemctl disable NetworkManager
-fi
 }
 
 #############
@@ -145,7 +168,19 @@ fi
 # 3. remove access to group
 sudo rm /etc/sudoers.d/mesh-front-sudoers
 
-# 4. remove olsrd
+# 4. Disable NetworkManager
+if [ $NetworkManager = 1 ]
+then
+   sudo systemctl start NetworkManager
+   sudo systemctl enable NetworkManager
+fi
+
+uninstall_olsrd
+}
+
+# Remove olsrd
+uninstall_olsrd()
+{
 if [ $init = "systemd" ]
 then
     systemctl disable olsrd
@@ -158,13 +193,6 @@ sudo make uninstall
 sudo make libs_uninstall
 sudo rm /etc/init.d/olsrd
 sudo rm /etc/default/olsrd
-
-# 5. Disable NetworkManager
-if [ $NetworkManager = 1 ]
-then
-   sudo systemctl start NetworkManager
-   sudo systemctl enable NetworkManager
-fi
 }
 
 ##################
