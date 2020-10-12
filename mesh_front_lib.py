@@ -14,18 +14,27 @@ env = Environment(loader=FileSystemLoader('templates'))
     # Basically, saves everything to system files
 
 def refresh_configs():
-    # Make interfaces Files
+    mesh_type = query_setting('mesh_type')
+    mesh_interface = query_setting('mesh_interface')
+    gateway_interface = query_setting('gateway_interface')
     interfaces = query_interface_settings()
+
+    # Set up mesh
+    if (mesh_type == 'batman'):
+        batman_if = {'iface': 'bat0', 'inet': 'manual'}
+        batman_if['preup'] = [ '/usr/sbin/batctl if add %s' % (mesh_interface) ]
+        batman_if['preup'].append('/usr/sbin/batctl gw_mode %s' % ('server' if (gateway_interface) else 'client'))
+        interfaces.append(batman_if)
+    elif (mesh_type == 'olsr'):
+        make_olsrd_config()
+        make_olsrd_key(query_setting('olsrd_key'))
+
+    # Make interfaces Files
     make_interface_config(interfaces)
 
-    # TODO, if Mesh IF and OLRS
-    # Make olrs Configs if olrs
-    make_olsrd_config()
-    make_olsrd_key(query_setting('olsrd_key'))
-
     # Bridge Interfaces if sharing internet
-    if (query_setting('gateway_interface')):
-        system_bridge_interfaces(query_setting('mesh_interface'), query_setting('gateway_interface'))
+    if (gateway_interface):
+        system_bridge_interfaces(mesh_interface, gateway_interface)
     else: # Clear the bridge otherwise
         system_clear_iptables()
 
@@ -48,14 +57,9 @@ def mesh_get_defaults(wifi_network):
     mesh = {}
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
-    mesh['mesh_type'] = 'olsr'
+    mesh['mesh_type'] = 'batman'
     mesh['ham_mesh'] = 0
     mesh['hostname'] = system_hostname()
-
-    # LibreMesh (Adhoc)
-    # https://github.com/rubo77/batman-connect/blob/master/batman-connect
-    if (mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE' or mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
-        mesh['mesh_type'] = 'batman'
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
@@ -67,6 +71,7 @@ def mesh_get_defaults(wifi_network):
     # Now that we have these things, what do we set the defaults too
     if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
         mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
+        mesh['mesh_type'] = 'olsr'
 
     if (mesh['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'

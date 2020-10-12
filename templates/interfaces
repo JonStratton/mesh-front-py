@@ -13,6 +13,9 @@ iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.wireless_mode%}    wireless-mode {{iface.wireless_mode}}{% endif %}
 {%if iface.wireless_channel%}    wireless-channel {{iface.wireless_channel}}{% endif %}
 {%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
+   {% for preup in iface.preup %}
+    pre-up {{preup}}
+   {% endfor %}
 {% endfor %}
 
 iface default inet dhcp
