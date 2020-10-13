@@ -17,20 +17,22 @@ def refresh_configs():
     mesh_type = query_setting('mesh_type')
     mesh_interface = query_setting('mesh_interface')
     gateway_interface = query_setting('gateway_interface')
-    interfaces = query_interface_settings()
+    mesh_interfaces = []
+    gw_mode = ''
 
     # Set up mesh
-    if (mesh_type == 'batman'):
-        batman_if = {'iface': 'bat0', 'inet': 'manual'}
-        batman_if['preup'] = [ '/usr/sbin/batctl if add %s' % (mesh_interface) ]
-        batman_if['preup'].append('/usr/sbin/batctl gw_mode %s' % ('server' if (gateway_interface) else 'client'))
-        interfaces.append(batman_if)
-    elif (mesh_type == 'olsr'):
+    if (mesh_type == 'batman'): # Set out pre-up stuff
+        mesh_interfaces.append(mesh_interface)
+        gw_mode = 'server' if (gateway_interface) else 'client'
+    # TODO: else: delete bat0 if it exists
+
+    if (mesh_type == 'olsr'):
         make_olsrd_config()
         make_olsrd_key(query_setting('olsrd_key'))
 
     # Make interfaces Files
-    make_interface_config(interfaces)
+    interfaces = query_interface_settings()
+    make_interface_config(interfaces, gw_mode, mesh_interfaces)
 
     # Bridge Interfaces if sharing internet
     if (gateway_interface):
@@ -365,10 +367,10 @@ def clean_network(network):
 # Templates #
 #############
 
-def make_interface_config(interfaces):
+def make_interface_config(interfaces, gw_mode='', mesh_interfaces=[]):
     config_file = '/etc/network/interfaces'
     template = env.get_template('interfaces')
-    output_from_parsed_template = template.render(ifaces=interfaces)
+    output_from_parsed_template = template.render(ifaces=interfaces, bat_gw_mode=gw_mode, bat_mesh_interfaces=mesh_interfaces)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)

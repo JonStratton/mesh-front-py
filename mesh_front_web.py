@@ -67,8 +67,11 @@ def mesh():
             mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
             mfl.system_hostname(escaped_request.get('hostname'))
 
+            # Push settings to mesh_interface, or bat0 if batman
             mesh_interface_settings = escaped_request
             mesh_interface_settings['iface'] = mesh_interface_settings['mesh_interface'] 
+            if (escaped_request.get('mesh_type') == 'batman'):
+                mesh_interface_settings['iface'] = 'bat0'
             mfl.upsert_interface(mesh_interface_settings)
 
             mfl.refresh_configs()

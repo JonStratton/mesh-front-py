@@ -7,15 +7,18 @@ iface lo inet loopback
 {% for iface in ifaces %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
+{%if iface.iface == 'bat0' %}
+    pre-up /usr/sbin/batctl gw_mode {{bat_gw_mode}}
+    {% for mesh_interface in bat_mesh_interfaces %}
+    pre-up /usr/sbin/batctl if add {{mesh_interface}}
+    {% endfor %}
+{% endif %}
 {%if iface.wireless_mode%}    pre-up sleep 5{% endif %}
 {%if iface.address%}    address {{iface.address}}{% endif %}
 {%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
 {%if iface.wireless_mode%}    wireless-mode {{iface.wireless_mode}}{% endif %}
 {%if iface.wireless_channel%}    wireless-channel {{iface.wireless_channel}}{% endif %}
 {%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
-   {% for preup in iface.preup %}
-    pre-up {{preup}}
-   {% endfor %}
 {% endfor %}
 
 iface default inet dhcp
