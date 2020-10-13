@@ -67,12 +67,16 @@ def mesh():
             mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
             mfl.system_hostname(escaped_request.get('hostname'))
 
-            # Push settings to mesh_interface, or bat0 if batman
-            mesh_interface_settings = escaped_request
-            mesh_interface_settings['iface'] = mesh_interface_settings['mesh_interface'] 
+            # If batman, split iface settings between wireless for the iw, and everything else in bat0
             if (escaped_request.get('mesh_type') == 'batman'):
-                mesh_interface_settings['iface'] = 'bat0'
-            mfl.upsert_interface(mesh_interface_settings)
+                batman_iface = {'iface': 'bat0', 'inet': escaped_request.get('inet'), 'address': escaped_request.get('address'), 'netmask': escaped_request.get('netmask')}
+                wireless_iface = {'iface': escaped_request.get('mesh_interface'), 'inet': 'manual', 'wireless_address': escaped_request.get('wireless_address'), 'wireless_mode': escaped_request.get('wireless_mode'), 'wireless_channel': escaped_request.get('wireless_channel'), 'wireless_essid': escaped_request.get('wireless_essid')}
+                mfl.upsert_interface(batman_iface)
+                mfl.upsert_interface(wireless_iface)
+            else:
+                mesh_interface_settings = escaped_request
+                mesh_interface_settings['iface'] = mesh_interface_settings['mesh_interface']
+                mfl.upsert_interface(mesh_interface_settings)
 
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
