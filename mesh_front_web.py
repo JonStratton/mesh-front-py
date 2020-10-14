@@ -89,6 +89,7 @@ def mesh():
         mesh['interfaces'] = mfl.system_interfaces()
         mesh['gateway_interface'] = mfl.query_setting('gateway_interface')
         mesh['dhcp_server_interface'] = mfl.query_setting('dhcp_server_interface')
+        mesh['mesh_type'] = mfl.query_setting('mesh_type')
         wireless_interfaces = mfl.system_interfaces('w')
         interfaces = mfl.system_interfaces()
         return render_template('mesh.html', wireless_interfaces = wireless_interfaces, interfaces = interfaces, mesh = mesh)
