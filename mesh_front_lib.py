@@ -18,12 +18,14 @@ def refresh_configs():
     mesh_interface = query_setting('mesh_interface')
     gateway_interface = query_setting('gateway_interface')
     mesh_interfaces = []
+    bridge_interface = mesh_interface
     gw_mode = ''
 
     # Set up mesh
     if (mesh_type == 'batman'): # Set out pre-up stuff
         mesh_interfaces.append(mesh_interface)
         gw_mode = 'server' if (gateway_interface) else 'client'
+        bridge_interface = 'bat0'
     # TODO: else: delete bat0 if it exists
 
     if (mesh_type == 'olsr'):
@@ -36,7 +38,8 @@ def refresh_configs():
 
     # Bridge Interfaces if sharing internet
     if (gateway_interface):
-        system_bridge_interfaces(mesh_interface, gateway_interface)
+        system_clear_iptables()
+        system_bridge_interfaces(bridge_interface, gateway_interface)
     else: # Clear the bridge otherwise
         system_clear_iptables()
 
