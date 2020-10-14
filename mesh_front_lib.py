@@ -14,18 +14,32 @@ env = Environment(loader=FileSystemLoader('templates'))
     # Basically, saves everything to system files
 
 def refresh_configs():
+    mesh_type = query_setting('mesh_type')
+    mesh_interface = query_setting('mesh_interface')
+    gateway_interface = query_setting('gateway_interface')
+    mesh_interfaces = []
+    bridge_interface = mesh_interface
+    gw_mode = ''
+
+    # Set up mesh
+    if (mesh_type == 'batman'): # Set out pre-up stuff
+        mesh_interfaces.append(mesh_interface)
+        gw_mode = 'server' if (gateway_interface) else 'client'
+        bridge_interface = 'bat0'
+    # TODO: else: delete bat0 if it exists
+
+    if (mesh_type == 'olsr'):
+        make_olsrd_config()
+        make_olsrd_key(query_setting('olsrd_key'))
+
     # Make interfaces Files
     interfaces = query_interface_settings()
-    make_interface_config(interfaces)
-
-    # TODO, if Mesh IF and OLRS
-    # Make olrs Configs if olrs
-    make_olsrd_config()
-    make_olsrd_key(query_setting('olsrd_key'))
+    make_interface_config(interfaces, gw_mode, mesh_interfaces)
 
     # Bridge Interfaces if sharing internet
-    if (query_setting('gateway_interface')):
-        system_bridge_interfaces(query_setting('mesh_interface'), query_setting('gateway_interface'))
+    if (gateway_interface):
+        system_clear_iptables()
+        system_bridge_interfaces(bridge_interface, gateway_interface)
     else: # Clear the bridge otherwise
         system_clear_iptables()
 
@@ -48,14 +62,9 @@ def mesh_get_defaults(wifi_network):
     mesh = {}
     for key in wifi_network:
         mesh[key] = wifi_network.get(key)
-    mesh['mesh_type'] = 'olsr'
+    mesh['mesh_type'] = 'batman'
     mesh['ham_mesh'] = 0
     mesh['hostname'] = system_hostname()
-
-    # LibreMesh (Adhoc)
-    # https://github.com/rubo77/batman-connect/blob/master/batman-connect
-    if (mesh['wireless_address'] == 'CA:FE:00:C0:FF:EE' or mesh['wireless_address'] == '02:C0:FF:EE:BA:BE'):
-        mesh['mesh_type'] = 'batman'
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
@@ -67,6 +76,7 @@ def mesh_get_defaults(wifi_network):
     # Now that we have these things, what do we set the defaults too
     if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
         mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
+        mesh['mesh_type'] = 'olsr'
 
     if (mesh['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'
@@ -360,10 +370,10 @@ def clean_network(network):
 # Templates #
 #############
 
-def make_interface_config(interfaces):
+def make_interface_config(interfaces, gw_mode='', mesh_interfaces=[]):
     config_file = '/etc/network/interfaces'
     template = env.get_template('interfaces')
-    output_from_parsed_template = template.render(ifaces=interfaces)
+    output_from_parsed_template = template.render(ifaces=interfaces, bat_gw_mode=gw_mode, bat_mesh_interfaces=mesh_interfaces)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)

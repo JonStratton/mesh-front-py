@@ -9,7 +9,7 @@
 <table>
 <tr><td>Mesh Type</td><td>
 	<select name="mesh_type">
-		{% for mesh_type in ['olsr', 'batman'] %}
+		{% for mesh_type in ['batman', 'olsr'] %}
 			<option {% if mesh.mesh_type == mesh_type %}selected{% endif %}>{{mesh_type}}</option>
 		{% endfor %}
 	</select></td></tr>
@@ -19,7 +19,7 @@
 			<option {% if wireless_interface == mesh_interface %}selected{% endif %}>{{wireless_interface}}</option>
 		{% endfor %}
 	</select></td></tr>
-<tr><td>Interface Type</td><td><select name="inet">{% for inet in ['static', 'dhcp'] %}
+<tr><td>Interface Type</td><td><select name="inet">{% for inet in ['manual', 'static', 'dhcp'] %}
                 <option {% if inet == mesh.inet %}selected{% endif %}>{{inet}}</option>
         {% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{mesh.address}}"></td></tr>
