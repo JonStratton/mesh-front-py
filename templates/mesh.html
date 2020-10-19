@@ -19,7 +19,7 @@
 			<option {% if wireless_interface == mesh_interface %}selected{% endif %}>{{wireless_interface}}</option>
 		{% endfor %}
 	</select></td></tr>
-<tr><td>Interface Type</td><td><select name="inet">{% for inet in ['manual', 'static', 'dhcp'] %}
+<tr><td>Interface Type</td><td><select name="inet">{% for inet in ['static', 'dhcp', 'manual'] %}
                 <option {% if inet == mesh.inet %}selected{% endif %}>{{inet}}</option>
         {% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{mesh.address}}"></td></tr>
@@ -46,6 +46,7 @@
 <tr><td>Act as Local DHCP Server on:</td><td>
 	<select name="dhcp_server_interface">
 		<option></option>
+		<option>bat0</option>
 		{% for interface in interfaces %}
 		<option {% if interface == mesh.dhcp_server_interface %}selected{% endif %}>{{interface}}</option>
 		{% endfor %}

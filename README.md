@@ -15,7 +15,6 @@ It takes inspiration (and indeed some configuration templates) from HSMM-pi (htt
 
 ## Possible Future Enhancements
 1. Clean up the Mesh Network detection, and populate it with a configuration file.
-1. Work better with batman-adv.
 1. An optional CJDNS layer.
 1. A configuration option that allows the downloading of mesh-front-pi via the web frontend. 
 

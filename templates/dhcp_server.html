@@ -10,11 +10,12 @@
 <tr><td>Interface</td><td>
 	<select name="dhcp_server_interface">
 		<option></option>
+		<option>bat0</option>
 		{% for interface in interfaces %}
 			<option {% if interface == dhcp_server.dhcp_server_interface %}selected{% endif %}>{{interface}}</option>
 		{% endfor %}
 	</select></td></tr>
-<tr><td>Type</td><td><select name="inet">{% for inet in ['static', 'dhcp'] %}
+<tr><td>Type</td><td><select name="inet">{% for inet in ['static', 'dhcp', 'manual'] %}
 		<option {% if inet == dhcp_server.inet %}selected{% endif %}>{{inet}}</option>
 	{% endfor %}</select></td></tr>
 <tr><td>IP Address</td><td><input type="text" name="address" value="{{dhcp_server.address}}"></td></tr>

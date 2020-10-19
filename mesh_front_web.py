@@ -167,17 +167,26 @@ def dhcp_server():
 
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
+
+        # Default to class B internal
         dhcp_server = {}
+        dhcp_server['inet'] = 'static'
+        dhcp_server['address'] = '172.31.254.1'
+        dhcp_server['netmask'] = '255.255.255.0'
+
         # If we are called with an interface, try to get the settings we have
         if (mfl.query_setting('dhcp_server_interface')):
             dhcp_server = mfl.query_interface_settings(mfl.query_setting('dhcp_server_interface'))[0]
             dhcp_server['dhcp_server_interface'] = mfl.query_setting('dhcp_server_interface')
-        # If we dont have these after fetching the IF settings, its time to default them to the end of class B Internal
-        dhcp_server['inet'] = 'static'
-        dhcp_server['address'] = '172.31.254.1'
-        dhcp_server['netmask'] = '255.255.255.0'
-        dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start') if mfl.query_setting('dhcp_server_ip_start') else '172.31.254.100'
-        dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end') if mfl.query_setting('dhcp_server_ip_end') else '172.31.254.200'
+            dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start')
+            dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end')
+
+        # Have an ip, but not start (and end?).
+        if dhcp_server['address'] and (not mfl.query_setting('dhcp_server_ip_start')):
+            address_base = '.'.join( dhcp_server['address'].split('.')[:3] )
+            dhcp_server['ip_start'] = "%s.%d" % (address_base, 100)
+            dhcp_server['ip_end'] = "%s.%d" % (address_base, 200)
+
         interfaces = mfl.system_interfaces()
         return render_template('dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
 
