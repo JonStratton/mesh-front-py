@@ -40,8 +40,10 @@ def refresh_configs():
     if (gateway_interface):
         system_clear_iptables()
         system_bridge_interfaces(bridge_interface, gateway_interface)
+        make_sysctl_conf()
     else: # Clear the bridge otherwise
         system_clear_iptables()
+        clear_sysctl_conf()
 
     # DHCP Server if serving internet
     if (query_setting('dhcp_server_interface')):
@@ -436,6 +438,19 @@ def make_dnsmasq_conf():
 # Clear it with an empty files, so we can keep its permissions
 def clear_dnsmasq_conf():
     config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
+    with open(config_file, 'w') as f:
+        pass
+    return(0)
+
+def make_sysctl_conf():
+    config_file = '/etc/sysctl.d/mesh-front-sysctl.conf'
+    with open(config_file, 'w') as f:
+        f.write('net.ipv4.ip_forward = 1')
+    return(0)
+
+# Clear it with an empty files, so we can keep its permissions
+def clear_sysctl_conf():
+    config_file = '/etc/sysctl.d/mesh-front-sysctl.conf'
     with open(config_file, 'w') as f:
         pass
     return(0)

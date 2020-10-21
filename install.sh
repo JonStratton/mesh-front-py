@@ -2,7 +2,7 @@
 
 myname=mesh-front
 install_packages="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
-system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf"
+system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf"
 
 # For OLSRD
 install_build_packages="build-essential bison flex libgps-dev"
