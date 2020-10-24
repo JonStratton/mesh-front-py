@@ -53,35 +53,33 @@ def refresh_configs():
 
 # Try to get guess the network settings based in ESSID, etc.
 # TODO, Split this out into a mesh identifier, and a default configuration by mesh type
-def mesh_get_defaults(wifi_network):
+def mesh_get_defaults(wireless):
     mesh = {}
-    for key in wifi_network:
-        mesh[key] = wifi_network.get(key)
-    mesh['mesh_type'] = 'batman'
-    mesh['ham_mesh'] = 0
-    mesh['hostname'] = system_hostname()
+    system = {}
+    ham_mesh = 0
+
+    system['mesh_type'] = 'batman'
+    system['hostname'] = system_hostname()
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
-    if (mesh['wireless_essid'].startswith('AREDN-') or mesh['wireless_essid'].startswith('BroadbandHamnet-')):
-        mesh['ham_mesh'] = 1
-    if (mesh['wireless_channel'] == '-1' or mesh['wireless_channel'] == '-2'):
-        mesh['ham_mesh'] = 1
+    if (wireless['wireless_essid'].startswith('AREDN-') or wireless['wireless_essid'].startswith('BroadbandHamnet-')):
+        ham_mesh = 1
+    if (wireless['wireless_channel'] == '-1' or wireless['wireless_channel'] == '-2'):
+        ham_mesh = 1
 
     # Now that we have these things, what do we set the defaults too
-    if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
-        mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
-        mesh['mesh_type'] = 'olsr'
+    if (ham_mesh and (not system_hostname().startswith(query_setting('callsign')))):
+        system['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
+        system['mesh_type'] = 'olsr'
 
-    if (mesh['mesh_type'] == 'olsr'):
+    if (system['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
-        mesh['wireless_address'] = ''
-    elif (mesh['mesh_type'] == 'batman'):
-        mesh['inet'] = 'auto'
+        wireless['wireless_address'] = ''
 
-    return(mesh)
+    return system, mesh, wireless
 
 def olsr_get(item = None):
     # wget over python request just so you dont have to import??! Are you insane?!!

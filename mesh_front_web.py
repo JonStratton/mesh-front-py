@@ -84,28 +84,25 @@ def mesh():
                 wireless_iface['netmask'] = escaped_request.get('mesh_netmask')
 
             mfl.upsert_interface(wireless_iface)
-
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
 
-
-        #if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
-        #    mesh = mfl.mesh_get_defaults(escaped_request)
-
-        mesh = {}
-        if (mfl.query_setting('mesh_interface')):
-            mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
-
-        wireless = {}
-        if (mfl.query_setting('wireless_interface')):
-            wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
-
         system = {}
+        mesh = {}
+        wireless = {}
+        if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
+            system, mesh, wireless = mfl.mesh_get_defaults(escaped_request)
+        else:
+            if (mfl.query_setting('mesh_interface')):
+                mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+            if (mfl.query_setting('wireless_interface')):
+                wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
+            system['hostname'] = mfl.system_hostname()
+            system['mesh_type'] = mfl.query_setting('mesh_type')
+
         system['wireless_interfaces'] = mfl.system_interfaces('w')
         system['interfaces'] = mfl.system_interfaces()
-        system['hostname'] = mfl.system_hostname()
         system['uplink'] = mfl.query_setting('uplink')
-        system['mesh_type'] = mfl.query_setting('mesh_type')
         system['olsrd_key'] = mfl.query_setting('olsrd_key')
 
         return render_template('mesh.html', system = system, wireless = wireless, mesh = mesh)
