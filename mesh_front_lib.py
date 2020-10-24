@@ -16,17 +16,10 @@ env = Environment(loader=FileSystemLoader('templates'))
 def refresh_configs():
     mesh_type = query_setting('mesh_type')
     mesh_interface = query_setting('mesh_interface')
-    gateway_interface = query_setting('gateway_interface')
-    mesh_interfaces = []
-    bridge_interface = mesh_interface
-    gw_mode = ''
+    uplink_interface = query_setting('uplink')
 
-    # Set up mesh
-    if (mesh_type == 'batman'): # Set out pre-up stuff
-        mesh_interfaces.append(mesh_interface)
-        gw_mode = 'server' if (gateway_interface) else 'client'
-        bridge_interface = 'bat0'
-    # TODO: else: delete bat0 if it exists
+    mesh_interfaces = [ query_setting('wireless_interface') ]
+    gw_mode = 'server' if (uplink_interface) else 'client'
 
     if (mesh_type == 'olsr'):
         make_olsrd_config()
@@ -37,9 +30,9 @@ def refresh_configs():
     make_interface_config(interfaces, gw_mode, mesh_interfaces)
 
     # Bridge Interfaces if sharing internet
-    if (gateway_interface):
+    if (uplink_interface):
         system_clear_iptables()
-        system_bridge_interfaces(bridge_interface, gateway_interface)
+        system_bridge_interfaces(mesh_interface, uplink_interface)
         make_sysctl_conf()
     else: # Clear the bridge otherwise
         system_clear_iptables()
@@ -154,6 +147,15 @@ def query_interface_settings(interface = None):
             record[columns[col_num]] = row[col_num]
         records.append(record)
 
+    return(records)
+
+def query_interfaces_configured():
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('SELECT iface FROM interface_settings;')
+    records = []
+    for row in c.fetchall():
+        records.append(row[0])
     return(records)
 
 def upsert_user(username, password_hash):
@@ -392,7 +394,7 @@ def make_olsrd_config():
 
         template = env.get_template('olsrd.conf')
         output_from_parsed_template = template.render(interface=interface, address=address, hostname=system_hostname(),
-                olsrd_key=olsrd_key, share_iface=query_setting('gateway_interface'), services=query_services())
+                olsrd_key=olsrd_key, share_iface=query_setting('uplink'), services=query_services())
         with open(config_file, 'w') as f:
             f.write(output_from_parsed_template)
     return(0)

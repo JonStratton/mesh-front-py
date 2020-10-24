@@ -60,39 +60,55 @@ def mesh():
     else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')): # Save settings and generate system files
-            mfl.upsert_setting('mesh_type', escaped_request.get('mesh_type'))
+            mfl.upsert_setting('mesh_type', escaped_request.get('system_mesh_type'))
             mfl.upsert_setting('mesh_interface', escaped_request.get('mesh_interface'))
-            mfl.upsert_setting('olsrd_key', escaped_request.get('olsrd_key'))
-            mfl.upsert_setting('gateway_interface', escaped_request.get('gateway_interface'))
-            mfl.upsert_setting('dhcp_server_interface', escaped_request.get('dhcp_server_interface'))
-            mfl.system_hostname(escaped_request.get('hostname'))
+            mfl.upsert_setting('wireless_interface', escaped_request.get('wireless_interface'))
+            mfl.upsert_setting('olsrd_key', escaped_request.get('system_olsrd_key'))
+            mfl.upsert_setting('uplink', escaped_request.get('system_uplink'))
+            mfl.system_hostname(escaped_request.get('system_hostname'))
 
-            # If batman, split iface settings between wireless for the iw, and everything else in bat0
-            if (escaped_request.get('mesh_type') == 'batman'):
-                batman_iface = {'iface': 'bat0', 'inet': escaped_request.get('inet'), 'address': escaped_request.get('address'), 'netmask': escaped_request.get('netmask')}
-                wireless_iface = {'iface': escaped_request.get('mesh_interface'), 'inet': 'manual', 'wireless_address': escaped_request.get('wireless_address'), 'wireless_mode': escaped_request.get('wireless_mode'), 'wireless_channel': escaped_request.get('wireless_channel'), 'wireless_essid': escaped_request.get('wireless_essid')}
-                mfl.upsert_interface(batman_iface)
-                mfl.upsert_interface(wireless_iface)
-            else:
-                mesh_interface_settings = escaped_request
-                mesh_interface_settings['iface'] = mesh_interface_settings['mesh_interface']
-                mfl.upsert_interface(mesh_interface_settings)
+            wireless_iface = { 'iface': escaped_request.get('wireless_interface'),
+                    'inet': escaped_request.get('wireless_inet'),
+                    'wireless_address': escaped_request.get('wireless_address'),
+                    'wireless_mode': escaped_request.get('wireless_mode'),
+                    'wireless_channel': escaped_request.get('wireless_channel'),
+                    'wireless_essid': escaped_request.get('wireless_essid')}
+            if (escaped_request.get('system_mesh_type') == 'batman'):
+                mesh_iface = { 'iface': escaped_request.get('mesh_interface'),
+                        'inet': escaped_request.get('mesh_inet'),
+                        'address': escaped_request.get('mesh_address'),
+                        'netmask': escaped_request.get('mesh_netmask')}
+                mfl.upsert_interface(mesh_iface)
+            elif (escaped_request.get('system_mesh_type') == 'olsr'):
+                wireless_iface['address'] = escaped_request.get('mesh_address')
+                wireless_iface['netmask'] = escaped_request.get('mesh_netmask')
+
+            mfl.upsert_interface(wireless_iface)
 
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
+
+
+        #if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
+        #    mesh = mfl.mesh_get_defaults(escaped_request)
+
         mesh = {}
-        if (request.values.get('copy')): # Just populate the form from the scan item. Still needs to be saved
-            mesh = mfl.mesh_get_defaults(escaped_request)
-        elif (mfl.query_setting('mesh_interface')):
+        if (mfl.query_setting('mesh_interface')):
             mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
-        mesh['wireless_interfaces'] = mfl.system_interfaces('w')
-        mesh['interfaces'] = mfl.system_interfaces()
-        mesh['gateway_interface'] = mfl.query_setting('gateway_interface')
-        mesh['dhcp_server_interface'] = mfl.query_setting('dhcp_server_interface')
-        mesh['mesh_type'] = mfl.query_setting('mesh_type')
-        wireless_interfaces = mfl.system_interfaces('w')
-        interfaces = mfl.system_interfaces()
-        return render_template('mesh.html', wireless_interfaces = wireless_interfaces, interfaces = interfaces, mesh = mesh)
+
+        wireless = {}
+        if (mfl.query_setting('wireless_interface')):
+            wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
+
+        system = {}
+        system['wireless_interfaces'] = mfl.system_interfaces('w')
+        system['interfaces'] = mfl.system_interfaces()
+        system['hostname'] = mfl.system_hostname()
+        system['uplink'] = mfl.query_setting('uplink')
+        system['mesh_type'] = mfl.query_setting('mesh_type')
+        system['olsrd_key'] = mfl.query_setting('olsrd_key')
+
+        return render_template('mesh.html', system = system, wireless = wireless, mesh = mesh)
 
 # List
 @app.route('/status')
@@ -181,13 +197,19 @@ def dhcp_server():
             dhcp_server['ip_start'] = mfl.query_setting('dhcp_server_ip_start')
             dhcp_server['ip_end'] = mfl.query_setting('dhcp_server_ip_end')
 
+        # Else if we have a mesh interface, we are probably going to want to use that
+        elif (mfl.query_setting('mesh_interface')):
+            dhcp_server = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+            dhcp_server['dhcp_server_interface'] = mfl.query_setting('mesh_interface')
+
         # Have an ip, but not start (and end?).
         if dhcp_server['address'] and (not mfl.query_setting('dhcp_server_ip_start')):
             address_base = '.'.join( dhcp_server['address'].split('.')[:3] )
             dhcp_server['ip_start'] = "%s.%d" % (address_base, 100)
             dhcp_server['ip_end'] = "%s.%d" % (address_base, 200)
 
-        interfaces = mfl.system_interfaces()
+        # mesh iface might not exist yet, so base ifaces off of config'd ifaces
+        interfaces = mfl.query_interfaces_configured()
         return render_template('dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
 
 # Just reboot.
