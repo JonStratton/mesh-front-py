@@ -10,7 +10,6 @@
 <tr><td>Interface</td><td>
 	<select name="dhcp_server_interface">
 		<option></option>
-		<option>bat0</option>
 		{% for interface in interfaces %}
 			<option {% if interface == dhcp_server.dhcp_server_interface %}selected{% endif %}>{{interface}}</option>
 		{% endfor %}

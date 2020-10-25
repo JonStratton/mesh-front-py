@@ -16,17 +16,10 @@ env = Environment(loader=FileSystemLoader('templates'))
 def refresh_configs():
     mesh_type = query_setting('mesh_type')
     mesh_interface = query_setting('mesh_interface')
-    gateway_interface = query_setting('gateway_interface')
-    mesh_interfaces = []
-    bridge_interface = mesh_interface
-    gw_mode = ''
+    uplink_interface = query_setting('uplink')
 
-    # Set up mesh
-    if (mesh_type == 'batman'): # Set out pre-up stuff
-        mesh_interfaces.append(mesh_interface)
-        gw_mode = 'server' if (gateway_interface) else 'client'
-        bridge_interface = 'bat0'
-    # TODO: else: delete bat0 if it exists
+    mesh_interfaces = [ query_setting('wireless_interface') ]
+    gw_mode = 'server' if (uplink_interface) else 'client'
 
     if (mesh_type == 'olsr'):
         make_olsrd_config()
@@ -37,9 +30,9 @@ def refresh_configs():
     make_interface_config(interfaces, gw_mode, mesh_interfaces)
 
     # Bridge Interfaces if sharing internet
-    if (gateway_interface):
+    if (uplink_interface):
         system_clear_iptables()
-        system_bridge_interfaces(bridge_interface, gateway_interface)
+        system_bridge_interfaces(mesh_interface, uplink_interface)
         make_sysctl_conf()
     else: # Clear the bridge otherwise
         system_clear_iptables()
@@ -60,35 +53,33 @@ def refresh_configs():
 
 # Try to get guess the network settings based in ESSID, etc.
 # TODO, Split this out into a mesh identifier, and a default configuration by mesh type
-def mesh_get_defaults(wifi_network):
+def mesh_get_defaults(wireless):
     mesh = {}
-    for key in wifi_network:
-        mesh[key] = wifi_network.get(key)
-    mesh['mesh_type'] = 'batman'
-    mesh['ham_mesh'] = 0
-    mesh['hostname'] = system_hostname()
+    system = {}
+    ham_mesh = 0
+
+    system['mesh_type'] = 'batman'
+    system['hostname'] = system_hostname()
 
     # Need to make sure people tread lightly here
     # AREDN / BBHN / HSMM
-    if (mesh['wireless_essid'].startswith('AREDN-') or mesh['wireless_essid'].startswith('BroadbandHamnet-')):
-        mesh['ham_mesh'] = 1
-    if (mesh['wireless_channel'] == '-1' or mesh['wireless_channel'] == '-2'):
-        mesh['ham_mesh'] = 1
+    if (wireless['wireless_essid'].startswith('AREDN-') or wireless['wireless_essid'].startswith('BroadbandHamnet-')):
+        ham_mesh = 1
+    if (wireless['wireless_channel'] == '-1' or wireless['wireless_channel'] == '-2'):
+        ham_mesh = 1
 
     # Now that we have these things, what do we set the defaults too
-    if (mesh['ham_mesh'] and (not system_hostname().startswith(query_setting('callsign')))):
-        mesh['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
-        mesh['mesh_type'] = 'olsr'
+    if (ham_mesh and (not system_hostname().startswith(query_setting('callsign')))):
+        system['hostname'] = '%s-%s' % (query_setting('callsign'), system_hostname())
+        system['mesh_type'] = 'olsr'
 
-    if (mesh['mesh_type'] == 'olsr'):
+    if (system['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
-        mesh['wireless_address'] = ''
-    elif (mesh['mesh_type'] == 'batman'):
-        mesh['inet'] = 'auto'
+        wireless['wireless_address'] = ''
 
-    return(mesh)
+    return system, mesh, wireless
 
 def olsr_get(item = None):
     # wget over python request just so you dont have to import??! Are you insane?!!
@@ -154,6 +145,15 @@ def query_interface_settings(interface = None):
             record[columns[col_num]] = row[col_num]
         records.append(record)
 
+    return(records)
+
+def query_interfaces_configured():
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('SELECT iface FROM interface_settings;')
+    records = []
+    for row in c.fetchall():
+        records.append(row[0])
     return(records)
 
 def upsert_user(username, password_hash):
@@ -392,7 +392,7 @@ def make_olsrd_config():
 
         template = env.get_template('olsrd.conf')
         output_from_parsed_template = template.render(interface=interface, address=address, hostname=system_hostname(),
-                olsrd_key=olsrd_key, share_iface=query_setting('gateway_interface'), services=query_services())
+                olsrd_key=olsrd_key, share_iface=query_setting('uplink'), services=query_services())
         with open(config_file, 'w') as f:
             f.write(output_from_parsed_template)
     return(0)
