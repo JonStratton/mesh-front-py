@@ -52,7 +52,10 @@ sudo usermod -a -G $myname $installuser
 #newgrp $myname
 
 # 3. Download and build olrsd
-install_olsrd
+if [ $OLSR ]
+then
+   install_olsrd
+fi
 
 # 4. Back up system files.
 for system_file in $system_files
@@ -175,7 +178,10 @@ then
    sudo systemctl enable NetworkManager
 fi
 
-uninstall_olsrd
+if [ $OLSR ]
+then
+   uninstall_olsrd
+fi
 }
 
 # Remove olsrd
