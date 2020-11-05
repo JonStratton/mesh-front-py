@@ -77,6 +77,8 @@ def mesh_get_defaults(wireless):
         mesh['inet'] = 'static'
         mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
         mesh['netmask'] = '255.0.0.0'
+
+    if (system['mesh_type'] == 'batman'):
         wireless['wireless_address'] = ''
 
     return system, mesh, wireless
