@@ -11,10 +11,11 @@
 <a href="/olsr_services">OLSR Services</a> |
 {% endif %}
 <a href="/logout">Logout</a> |
-{% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %}
+{% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %} |
 {% else %}
-<a href="/login">Login</a>
+<a href="/login">Login</a> |
 {% endif %}
+<a href="static/mesh-front-py.tgz">Download</a>
 </p>
 <hr>
 {% block body %}{% endblock %}

@@ -27,7 +27,10 @@ def escape_request(request): # Cant help but think Im redoing something built in
         escaped_request[escape(key)] = escape(request.get(key))
     return escaped_request
 
-# static/jquery.min.js
+@app.route('/static/mesh-front-py.tgz')
+def static_meshfrontpy():
+    return send_from_directory('', 'static/mesh-front-py.tgz')
+
 @app.route('/static/jquery.min.js')
 def static_jquery():
     return send_from_directory('', 'static/jquery.min.js')

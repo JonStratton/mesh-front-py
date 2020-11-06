@@ -27,6 +27,17 @@ fi
 ###########
 install_mesh_front()
 {
+# 0. Copy self to serve statically
+if [ ! -e static/mesh-front-py.tgz ]
+then
+   tar -czf static/mesh-front-py.tgz \
+      --exclude=static/mesh-front-py.tgz \
+      --exclude=salt.txt \
+      --exclude=db.sqlite3 \
+      --exclude=__pycache__ \
+     ../mesh-front-py
+fi
+
 # 1. Install dependancies
 sudo apt-get update
 if [ -e ./new_packages.txt ]
