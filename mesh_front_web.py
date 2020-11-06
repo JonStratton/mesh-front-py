@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = 'Jon Stratton'
 import sys, os, getopt
-from flask import Flask, render_template, request, session, escape
+from flask import Flask, render_template, request, session, escape, send_from_directory
 import mesh_front_lib as mfl
 
 # Defaults
@@ -26,6 +26,11 @@ def escape_request(request): # Cant help but think Im redoing something built in
     for key in request:
         escaped_request[escape(key)] = escape(request.get(key))
     return escaped_request
+
+# static/jquery.min.js
+@app.route('/static/jquery.min.js')
+def static_jquery():
+    return send_from_directory('', 'static/jquery.min.js')
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
