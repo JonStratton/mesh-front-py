@@ -25,6 +25,9 @@ def refresh_configs():
         make_olsrd_config()
         make_olsrd_key(query_setting('olsrd_key'))
 
+    if (not mesh_type == 'batman'):
+        delete_interface('bat0')
+
     # Make interfaces Files
     interfaces = query_interface_settings()
     make_interface_config(interfaces, gw_mode, mesh_interfaces)
@@ -127,6 +130,13 @@ def upsert_interface(interface):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_address=excluded.wireless_address, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel))
+    conn.commit()
+    return(0)
+
+def delete_interface(iface):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('DELETE FROM interface_settings WHERE iface = ?;', (iface, ) )
     conn.commit()
     return(0)
 
@@ -289,6 +299,16 @@ def system_clear_iptables():
     for cmd in cmds:
         subprocess.call(cmd, shell=True, stdout=None, stderr=None)
     return(0)
+
+def system_mesh_types():
+    mesh_types = []
+    if os.path.exists('/usr/sbin/batctl'):
+        mesh_types.append('batman')
+    if os.path.exists('/opt/cjdns/cjdroute'):
+        mesh_types.append('cjdns')
+    if os.path.exists('/usr/local/sbin/olsrd'):
+        mesh_types.append('olsr')
+    return(mesh_types)
 
 #############################
 # System Interface Settings #

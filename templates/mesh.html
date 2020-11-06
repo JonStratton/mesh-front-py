@@ -19,7 +19,7 @@ table input {
 <tr><td>Hostname</td><td><input type="text" name="system_hostname" value="{{system.hostname}}"></td></tr>
 <tr><td>Mesh Type</td><td>
 	<select id="mesh_type" name="system_mesh_type">
-		{% for mesh_type in ['', 'batman', 'olsr'] %}
+		{% for mesh_type in system.mesh_types %}
 			<option {% if mesh_type == system.mesh_type %}selected{% endif %}>{{mesh_type}}</option>
 		{% endfor %}
 	</select></td></tr>

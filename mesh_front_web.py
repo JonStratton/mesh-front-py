@@ -120,6 +120,7 @@ def mesh():
         system['wireless_interfaces'] = mfl.system_interfaces('w')
         system['interfaces'] = mfl.system_interfaces()
         system['uplink'] = mfl.query_setting('uplink')
+        system['mesh_types'] = mfl.system_mesh_types()
         system['olsrd_key'] = mfl.query_setting('olsrd_key')
 
         return render_template('mesh.html', system = system, wireless = wireless, mesh = mesh)
