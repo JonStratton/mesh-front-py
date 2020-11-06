@@ -217,15 +217,25 @@ def query_services(service_id = None):
 ##########
     # Mostly our interaction with the system, minus the templating
 
+def system_debug_batctl():
+    outputs = []
+    cmds = [ 'ip a', 'sudo batctl n' ]
+    for cmd in cmds:
+        output = ''
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line_bytes in p.stdout.readlines():
+            #cmd_to_return[cmd].append( line_bytes.decode('utf-8') )
+            output += line_bytes.decode('utf-8')
+        outputs.append(output)
+    return(outputs)
+
 def system_hostname(new_hostname = None):
     if (new_hostname):
         new_hostname = re.sub('[^0-9a-zA-Z\-]+', '', new_hostname)
         cmd = 'sudo hostname %s' % (new_hostname)
         code = subprocess.call(cmd, shell=True, stdout=None, stderr=None)
         make_hostname_and_hosts(new_hostname)
-        return(socket.gethostname())
-    else:
-        return(socket.gethostname())
+    return(socket.gethostname())
 
 def system_reboot():
     cmd = 'sudo reboot'

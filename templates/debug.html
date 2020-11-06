@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+{% for output in outputs %}
+<textarea rows="20" cols="100">
+{{output}}
+</textarea>
+<br /><br />
+{% endfor %}
+
+{% endblock %}

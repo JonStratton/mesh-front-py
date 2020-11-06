@@ -35,6 +35,14 @@ def static_meshfrontpy():
 def static_jquery():
     return send_from_directory('', 'static/jquery.min.js')
 
+@app.route('/debug')
+def debug():
+    if not session.get('logged_in'):
+       return render_template('login.html')
+    else:
+       outputs = mfl.system_debug_batctl()
+       return render_template('debug.html', outputs = outputs)
+
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
     if not session.get('logged_in'):
