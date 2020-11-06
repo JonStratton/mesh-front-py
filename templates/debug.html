@@ -2,11 +2,14 @@
 
 {% block body %}
 
-{% for output in outputs %}
-<textarea rows="20" cols="100">
-{{output}}
-</textarea>
-<br /><br />
+{% for command_and_output in commands_and_outputs %}
+<h3><code>{{command_and_output.command}}</code></h3>
+
+<textarea rows="{{command_and_output.output|length + 5}}" cols="100" readonly>
+{% for line in command_and_output.output %}{{line}}
+{% endfor %}
+</textarea><br />
+
 {% endfor %}
 
 {% endblock %}

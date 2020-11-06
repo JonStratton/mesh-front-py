@@ -1,5 +1,7 @@
 # Mesh Front Stuff
 salt.txt
+new_packages.txt
+static/mesh-front-py.tgz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -217,17 +217,15 @@ def query_services(service_id = None):
 ##########
     # Mostly our interaction with the system, minus the templating
 
-def system_debug_batctl():
-    outputs = []
-    cmds = [ 'ip a', 'sudo batctl n' ]
-    for cmd in cmds:
-        output = ''
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def system_debug(commands = []):
+    commands_and_outputs = []
+    for command in commands:
+        command_and_output = {'command': command, 'output': []}
+        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line_bytes in p.stdout.readlines():
-            #cmd_to_return[cmd].append( line_bytes.decode('utf-8') )
-            output += line_bytes.decode('utf-8')
-        outputs.append(output)
-    return(outputs)
+            command_and_output['output'].append( line_bytes.decode('utf-8').rstrip() )
+        commands_and_outputs.append(command_and_output)
+    return(commands_and_outputs)
 
 def system_hostname(new_hostname = None):
     if (new_hostname):

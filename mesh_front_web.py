@@ -40,8 +40,9 @@ def debug():
     if not session.get('logged_in'):
        return render_template('login.html')
     else:
-       outputs = mfl.system_debug_batctl()
-       return render_template('debug.html', outputs = outputs)
+       cmds = ['ip a', 'sudo batctl n']
+       commands_and_outputs = mfl.system_debug(cmds)
+       return render_template('debug.html', commands_and_outputs = commands_and_outputs)
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
