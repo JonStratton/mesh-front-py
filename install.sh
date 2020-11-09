@@ -1,35 +1,66 @@
 #!/bin/sh
 
 myname=mesh-front
-install_packages="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
-system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf"
-
-# For OLSRD
-install_build_packages="build-essential bison flex libgps-dev"
-system_files_olsrd="/etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key /etc/default/olsrd"
-
-# Which init system do we use?
-init="systemd"
-if [ ! -e '/usr/bin/systemctl' ]
-then
-   init="sysV"
-fi
-
-# Do we need to work around Network Manager?
-NetworkManager=0
-if [ -d '/etc/NetworkManager' ]
-then
-   NetworkManager=1
-fi
+package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
+package_list_build="" # These will be cleaned out (if new) after install
+controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf"
 
 ###########
 # Install #
 ###########
 install_mesh_front()
 {
-# 0. Copy self to serve statically
-if [ ! -e static/mesh-front-py.tgz ]
-then
+# Build lists of packages and files
+if [ $CJDNS = 1 ] || [ $OLSR = 1 ]; then
+   package_list_build="$package_list_build build-essential"
+fi
+if [ $CJDNS = 1 ]; then
+   package_list_build="$package_list_build nodejs python2.7"
+   controlled_system_files="$controlled_system_files /etc/cjdroute.conf"
+fi
+if [ $OLSR = 1 ]; then
+   package_list="$package_list bison flex libgps-dev"
+   controlled_system_files="$controlled_system_files /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key"
+fi
+
+# Install Deps
+sudo apt-get update
+new_packages="" # When we cleanup, we only want to remove packages we freshly installed
+for package in $package_list; do
+   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $package | grep "is already the newest version" | wc -l` -eq 0 ]; then
+      new_packages="$new_packages $package"
+   fi
+done
+echo $new_packages > ./new_packages.txt
+
+# Install Temp Deps for building
+packages_to_delete=""
+for package in $package_list_build; do
+   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $package | grep "is already the newest version" | wc -l` -eq 0 ]; then
+      packages_to_delete="$packages_to_delete $package"
+   fi
+done
+
+# New Group and Sudo Access
+sudo groupadd $myname
+installuser=`whoami`
+if [ $installuser = 'root' ]; then
+    read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
+fi
+sudo usermod -a -G $myname $installuser
+sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
+sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
+
+# Install Optional Apps
+if [ $CJDNS ]; then
+   install_cjdns
+fi
+if [ $OLSR ]; then
+   install_olsrd
+fi
+
+# Roll everything up in a tarball for other people to download
+if [ ! -e static/mesh-front-py.tgz ]; then
    tar -czf static/mesh-front-py.tgz \
       --exclude=static/mesh-front-py.tgz \
       --exclude=salt.txt \
@@ -38,41 +69,15 @@ then
      ../mesh-front-py
 fi
 
-# 1. Install dependancies
-sudo apt-get update
-if [ -e ./new_packages.txt ]
-then
-   rm ./new_packages.txt
-fi
-for install_package in $install_packages
+# Remove Temp Deps, autoremove and clean
+sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y $packages_to_delete
+sudo apt-get autoremove -y
+sudo apt-get clean -y
+
+# Change perms on and backup controlled files
+for system_file in $controlled_system_files
 do
-   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_package | grep "is already the newest version" | wc -l` -eq 0 ]
-   then
-      echo $install_package >> ./new_packages.txt
-   fi
-done
-
-# 2. Create Group if it doesnt exist
-sudo groupadd $myname
-installuser=`whoami`
-if [ $installuser = 'root' ]
-then
-    read -p "Run as root. Please enter the name of a non root user to gran $myname access too: " installuser
-fi
-sudo usermod -a -G $myname $installuser
-#newgrp $myname
-
-# 3. Download and build olrsd
-if [ $OLSR ]
-then
-   install_olsrd
-fi
-
-# 4. Back up system files.
-for system_file in $system_files
-do
-   if [ -e $system_file ]
-   then
+   if [ -e $system_file ]; then
       sudo cp $system_file $system_file.$myname-backup
    else
       sudo touch $system_file
@@ -81,39 +86,45 @@ do
    sudo chmod g+w $system_file
 done
 
-# 5. Add sudo access to group, and other generic install files
-sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
-sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
-
-# 6. Disable NetworkManager
-if [ $NetworkManager = 1 ]
-then
+# Turn off Network Manager if its installed
+if [ -d '/etc/NetworkManager' ]; then
    sudo systemctl stop NetworkManager
    sudo systemctl disable NetworkManager
 fi
+
+# Hint so we dont have to log out maybe
+echo "Run the following command: newgrp $myname"
 }
 
+# Download and build cjdns
+install_cjdns()
+{
+if [ ! -e static/cjdns-master.tar.gz ]
+then
+   wget https://github.com/cjdelisle/cjdns/archive/master.tar.gz -O static/cjdns-master.tar.gz
+fi
+tar xzf static/cjdns-master.tar.gz
+cd cjdns-master
+. ./do
+sudo mv cjdroute /usr/bin/cjdroute
+sudo cp contrib/systemd/cjdns.service /etc/systemd/system/
+cd ..
+sudo sh -c '(umask 077 && /usr/bin/cjdroute --genconf > /etc/cjdroute.conf )'
+rm -rf cjdns-master
+
+sudo systemctl daemon-reload
+sudo systemctl start cjdns.service
+sudo systemctl enable cjdns.service
+}
+
+# Download and build olsrd
 install_olsrd()
 {
-# Build stuff for olsrd only
-for install_build_package in $install_build_packages
-do 
-   if [ `sudo DEBIAN_FRONTEND=noninteractive apt-get install -y $install_build_package | grep "is already the newest version" | wc -l` -eq 0 ]
-   then
-      echo $install_build_package >> ./new_packages.txt
-   fi
-done
-
-# Download and build olrsd
-if [ ! -d share ]
+if [ ! -e static/olsrd-master.tar.gz ]
 then
-   mkdir share
+   wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O static/olsrd-master.tar.gz
 fi
-if [ ! -e share/olsrd-master.tar.gz ]
-then
-   wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O share/olsrd-master.tar.gz
-fi
-tar xzf share/olsrd-master.tar.gz
+tar xzf static/olsrd-master.tar.gz
 cd olsrd-master
 make
 sudo make install
@@ -122,25 +133,7 @@ sudo make libs_install
 cd ..
 sudo cp install/olsrd.init /etc/init.d/olsrd
 sudo cp install/olsrd.default /etc/default/olsrd
-if [ $init = "systemd" ]
-then
-    sudo systemctl enable olsrd
-elif [ $init = "sysV" ]
-then
-    sudo update-rc.d olsrd defaults
-    sudo update-rc.d olsrd enable
-fi
-
-# Chmod the confit files
-for system_file_olsrd in $system_files_olsrd
-do
-   if [ ! -e $system_file_olsrd ]
-   then
-      sudo touch $system_file_olsrd
-   fi
-   sudo chown :$myname $system_file_olsrd
-   sudo chmod g+w $system_file_olsrd
-done
+sudo systemctl enable olsrd
 }
 
 #############
@@ -148,9 +141,16 @@ done
 #############
 uninstall_mesh_front()
 {
-# 0. Restore old system files
-for system_file in $system_files
-do
+# Unstall Optional Apps
+if [ $CJDNS ]; then
+   uninstall_cjdns
+fi
+if [ $OLSR ]; then
+   uninstall_olsrd
+fi
+
+# Restore old system files
+for system_file in $controlled_system_files; do
    sudo rm $system_file
    if [ -e $system_file.$myname-backup ]
    then
@@ -160,56 +160,42 @@ do
    fi
 done
 
-# 1. Install dependancies
-if [ -e ./new_packages.txt ]
-then
-    install_packages=`cat ./new_packages.txt | tr '\n' ' '`
-fi
-
-for new_package in $install_packages
-do
-   sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y $new_package
-done
-sudo apt autoremove -y
+# Remove Packages
+sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y `cat ./new_packages.txt`
 rm ./new_packages.txt
+sudo apt-get autoremove -y
+sudo apt-get clean -y
 
-# 2. Create Group if it doesnt exist
-if [ `grep $myname /etc/group | wc -l` ]
-then
-   sudo groupdel $myname
-fi
-
-# 3. remove access to group
+# Delete group and sudo access
+sudo groupdel $myname
 sudo rm /etc/sudoers.d/mesh-front-sudoers
 
-# 4. Disable NetworkManager
-if [ $NetworkManager = 1 ]
-then
+# Enable NetworkManager if installed
+if [ -d '/etc/NetworkManager' ]; then
    sudo systemctl start NetworkManager
    sudo systemctl enable NetworkManager
 fi
-
-if [ $OLSR ]
-then
-   uninstall_olsrd
-fi
 }
 
-# Remove olsrd
+uninstall_cjdns()
+{
+sudo systemctl disable cjdns.service
+sudo rm /etc/systemd/system/cjdns.service
+sudo rm /usr/bin/cjdroute
+sudo rm /etc/cjdroute.conf
+sudo rm /etc/cjdroute.conf.mesh-front-backup
+}
+
 uninstall_olsrd()
 {
-if [ $init = "systemd" ]
-then
-    systemctl disable olsrd
-elif [ $init = "sysV" ]
-then
-    sudo update-rc.d olsrd remove
-fi
+sudo systemctl disable olsrd
 cd olsrd-master
 sudo make uninstall
 sudo make libs_uninstall
+cd ..
 sudo rm /etc/init.d/olsrd
 sudo rm /etc/default/olsrd
+sudo rm /etc/olsrd/olsrd.conf.mesh-front-backup
 }
 
 ##################
@@ -236,21 +222,10 @@ sudo chown :mesh-front /var/www/mesh-front-py/salt.txt
 sudo chmod g+r /var/www/mesh-front-py/salt.txt
 
 # Install service
-if [ $init = "systemd" ]
-then
-    sudo cp install/mesh-front.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl start mesh-front.service
-    sudo systemctl enable mesh-front.service
-elif [ $init = "sysV" ]
-then
-    sudo useradd $myname --no-user-group --groups $myname --shell /usr/sbin/nologin
-    sudo cp install/mesh-front.init /etc/init.d/mesh-front
-    sudo chmod +x /etc/init.d/mesh-front
-    sudo update-rc.d mesh-front defaults
-    sudo update-rc.d mesh-front enable
-    sudo service mesh-front start
-fi
+sudo cp install/mesh-front.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start mesh-front.service
+sudo systemctl enable mesh-front.service
 }
 
 ####################
@@ -259,20 +234,9 @@ fi
 uninstall_mesh_front_system()
 {
 # Stop Service and uninstall
-
-if [ $init = "systemd" ]
-then
-    sudo systemctl stop mesh-front.service
-    sudo systemctl disable mesh-front.service
-    sudo rm /etc/systemd/system/mesh-front.service
-elif [ $init = "sysV" ]
-then
-    sudo service mesh-front stop
-    sudo update-rc.d mesh-front disable
-    sudo update-rc.d mesh-front remove
-    sudo rm /etc/init.d/mesh-front
-    sudo userdel $myname
-fi
+sudo systemctl stop mesh-front.service
+sudo systemctl disable mesh-front.service
+sudo rm /etc/systemd/system/mesh-front.service
 
 # Remove base directory
 sudo rm -rf /var/www/mesh-front-py/

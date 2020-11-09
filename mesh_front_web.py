@@ -38,16 +38,16 @@ def static_jquery():
 @app.route('/debug')
 def debug():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
        cmds = ['ip a', 'sudo batctl n']
        commands_and_outputs = mfl.system_debug(cmds)
-       return render_template('debug.html', commands_and_outputs = commands_and_outputs)
+       return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
 
 @app.route('/ifconfig', methods=['GET', 'POST'])
 def if_config():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         # If an Interface is passed in, update it
         escaped_request = escape_request(request.values)
@@ -60,20 +60,20 @@ def if_config():
         if (escaped_request.get('interface')):
             interface = escaped_request.get('interface')
         if_configs = mfl.query_interface_settings(interface)
-        return render_template('ifconfig.html', ifaces=if_configs)
+        return render_template('web/ifconfig.html', ifaces=if_configs)
 
 @app.route('/scan')
 def scan():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         networks = mfl.system_wifi_networks()
-        return render_template('scan.html', networks=networks)
+        return render_template('web/scan.html', networks=networks)
 
 @app.route('/mesh', methods=['GET', 'POST'])
 def mesh():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')): # Save settings and generate system files
@@ -123,7 +123,7 @@ def mesh():
         system['mesh_types'] = mfl.system_mesh_types()
         system['olsrd_key'] = mfl.query_setting('olsrd_key')
 
-        return render_template('mesh.html', system = system, wireless = wireless, mesh = mesh)
+        return render_template('web/mesh.html', system = system, wireless = wireless, mesh = mesh)
 
 # List
 @app.route('/status')
@@ -131,12 +131,12 @@ def status():
     olsr_neighbors = {}
     if (mfl.query_setting('mesh_type') == 'olsr'):
         olsr_neighbors = mfl.olsr_get('links')
-    return render_template('status.html', olsr_neighbors = olsr_neighbors)
+    return render_template('web/status.html', olsr_neighbors = olsr_neighbors)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         escaped_request = escape_request(request.values)
         if (request.values.get('save')):
@@ -157,14 +157,14 @@ def settings():
         settings['listen_ip'] = mfl.query_setting('listen_ip')
         settings['dns1'] = mfl.query_setting('dns1')
         settings['dns2'] = mfl.query_setting('dns2')
-        return render_template('settings.html', settings = settings)
+        return render_template('web/settings.html', settings = settings)
 
 @app.route('/olsr_services', methods=['GET', 'POST'])
 @app.route('/olsr_services/<action>', methods=['GET', 'POST'])
 @app.route('/olsr_services/<action>/<service_id>', methods=['GET', 'POST'])
 def services(action = 'display', service_id = None):
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save')):
@@ -172,18 +172,18 @@ def services(action = 'display', service_id = None):
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
         if (action == 'add'):
-            return render_template('olsr_servicesadd.html')
+            return render_template('web/olsr_servicesadd.html')
         elif (action == 'delete' and service_id):
             mfl.delete_service(service_id)
             mfl.refresh_configs()
             mfl.upsert_setting('should_reboot', 'true')
         services = mfl.query_services()
-        return render_template('olsr_services.html', services = services, hostname = mfl.system_hostname())
+        return render_template('web/olsr_services.html', services = services, hostname = mfl.system_hostname())
 
 @app.route('/dhcp_server', methods=['GET', 'POST'])
 def dhcp_server():
     if not session.get('logged_in'):
-       return render_template('login.html')
+       return render_template('web/login.html')
     else:
         escaped_request = escape_request(request.values)
         if (escaped_request.get('save')):
@@ -225,13 +225,13 @@ def dhcp_server():
 
         # mesh iface might not exist yet, so base ifaces off of config'd ifaces
         interfaces = mfl.query_interfaces_configured()
-        return render_template('dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
+        return render_template('web/dhcp_server.html', interfaces = interfaces, dhcp_server = dhcp_server )
 
 # Just reboot.
 @app.route('/reboot')
 def reboot():
     if not session.get('logged_in'):
-        return render_template('login.html')
+        return render_template('web/login.html')
     else:
         mfl.upsert_setting('should_reboot', '')
         mfl.system_reboot()
@@ -245,7 +245,7 @@ def do_admin_login():
         if (mfl.user_auth(request.form['username'], password_hash)):
             session['logged_in'] = True
             return status()
-    return render_template('login.html')
+    return render_template('web/login.html')
 
 @app.route('/logout')
 def logout():
