@@ -30,6 +30,11 @@ Before installing on the system, you should test it out under a user account (wi
 
 If you run this as root, you will be prompted for a non root username. If you run it as a normal user, you might need to log off and on to make sure you have been added to the new "mesh-front" group.
 
+If you want to build and run cjdns on the node and be managed by mesh-front-py, you can set a toggle before running the installed.
+
+    CJDNS=1; export CJDNS
+    ./install.sh
+
 Note, OLSR has been turned off by default. If you want to also install OLSR (for instance, if you are making an AREDN / Broadband Hamnet compatible node), make sure to set an “OLSR” environmental variable ahead of the install.sh script.
 
     OLSR=1; export OLSR
