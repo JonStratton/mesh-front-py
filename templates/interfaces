@@ -4,14 +4,14 @@
 auto lo
 iface lo inet loopback
 
-{% for iface in ifaces if not iface.wireless_mode and iface.iface != 'bat0' %}
+{% for iface in ifaces if not iface.wireless_mode and iface.iface != 'bat0' and iface.iface != 'tun0' %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.address%}    address {{iface.address}}{% endif %}
 {%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
 {% endfor %}
 
-{% for iface in ifaces if iface.wireless_mode %}
+{% for iface in ifaces if iface.wireless_mode and iface.iface != 'tun0' %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.wireless_mode%}    pre-up sleep 5{% endif %}
