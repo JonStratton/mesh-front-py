@@ -44,24 +44,6 @@ def debug():
        commands_and_outputs = mfl.system_debug(cmds)
        return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
 
-@app.route('/ifconfig', methods=['GET', 'POST'])
-def if_config():
-    if not session.get('logged_in'):
-       return render_template('web/login.html')
-    else:
-        # If an Interface is passed in, update it
-        escaped_request = escape_request(request.values)
-        if (escaped_request.get('save')):
-            mfl.upsert_interface(escaped_request)
-            mfl.refresh_configs()
-            mfl.upsert_setting('should_reboot', 'true')
-        # If we have an interface, only get it
-        interface = None
-        if (escaped_request.get('interface')):
-            interface = escaped_request.get('interface')
-        if_configs = mfl.query_interface_settings(interface)
-        return render_template('web/ifconfig.html', ifaces=if_configs)
-
 @app.route('/scan')
 def scan():
     if not session.get('logged_in'):
@@ -91,11 +73,21 @@ def mesh():
                     'wireless_channel': escaped_request.get('wireless_channel'),
                     'wireless_essid': escaped_request.get('wireless_essid')}
             if (escaped_request.get('system_mesh_type') == 'batman'):
+                # Auto gen ipv6 if checked
+                mesh_address_ipv6 = escaped_request.get('mesh_address_ipv6', '')
+                if (escaped_request.get('autoconfig_ipv6') == 'on'):
+                    mesh_address_ipv6 = mfl.generate_ipv6(escaped_request.get('wireless_essid'), mfl.system_hostname())
+
                 mesh_iface = { 'iface': escaped_request.get('mesh_interface'),
                         'inet': escaped_request.get('mesh_inet'),
                         'address': escaped_request.get('mesh_address'),
                         'netmask': escaped_request.get('mesh_netmask')}
                 mfl.upsert_interface(mesh_iface)
+                mesh_iface_ipv6 = { 'iface': escaped_request.get('mesh_interface'),
+                        'inet': escaped_request.get('mesh_inet_ipv6'),
+                        'address': mesh_address_ipv6,
+			'ipv': 6}
+                mfl.upsert_interface(mesh_iface_ipv6)
             elif (escaped_request.get('system_mesh_type') == 'olsr'):
                 wireless_iface['address'] = escaped_request.get('mesh_address')
                 wireless_iface['netmask'] = escaped_request.get('mesh_netmask')
@@ -111,12 +103,21 @@ def mesh():
             system, mesh, wireless = mfl.mesh_get_defaults(escaped_request)
         else:
             if (mfl.query_setting('mesh_interface')):
-                mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+                mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'), 4)[0]
+                mesh6 = mfl.query_interface_settings(mfl.query_setting('mesh_interface'), 6)[0]
+                mesh['inet6'] = mesh6.get('inet', '')
+                mesh['address6'] = mesh6.get('address', '')
+            else:
+                mesh['inet6'] = 'static'
+                mesh['address6'] = mesh6.get('address', '')
+
             if (mfl.query_setting('wireless_interface')):
                 wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
             system['hostname'] = mfl.system_hostname()
             system['mesh_type'] = mfl.query_setting('mesh_type')
 
+        mesh['inet6'] = 'static' # TODO, populate if not set
+        mesh['address6'] = mesh6.get('address', '')
         system['wireless_interfaces'] = mfl.system_interfaces('w')
         system['interfaces'] = mfl.system_interfaces()
         system['uplink'] = mfl.query_setting('uplink')

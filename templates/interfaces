@@ -24,7 +24,7 @@ iface {{iface.iface}} inet {{iface.inet}}
 
 {% for iface in ifaces if iface.iface == 'bat0' %}
 auto {{iface.iface}}
-iface {{iface.iface}} inet {{iface.inet}}
+iface {{iface.iface}} inet{% if iface.ipv == 6 %}6{% endif %} {{iface.inet}}
 {% for mesh_interface in bat_mesh_interfaces %}    pre-up /usr/sbin/batctl if add {{mesh_interface}}
 {% endfor %}
 {%if bat_gw_mode%}    pre-up /usr/sbin/batctl gw_mode {{bat_gw_mode}}{% endif %}

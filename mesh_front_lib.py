@@ -78,7 +78,7 @@ def mesh_get_defaults(wireless):
 
     if (system['mesh_type'] == 'olsr'):
         mesh['inet'] = 'static'
-        mesh['address'] = '10.%s' % '.'.join(get_bg_by_string(system_hostname(), 3))
+        mesh['address'] = generate_ipv4(system_hostname())
         mesh['netmask'] = '255.0.0.0'
 
     if (system['mesh_type'] == 'batman'):
@@ -118,6 +118,7 @@ def upsert_setting(setting, value):
     return(0)
 
 def upsert_interface(interface):
+    ipv     = interface.get('ipv', 4)
     iface   = interface.get('iface', '')
     netmask = interface.get('netmask', '')
     address = interface.get('address', '')
@@ -129,7 +130,7 @@ def upsert_interface(interface):
 
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.execute('INSERT INTO interface_settings (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_address=excluded.wireless_address, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel))
+    c.execute('INSERT INTO interface_settings (ipv, iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(ipv, iface) DO UPDATE SET inet=excluded.inet, address=excluded.address, netmask=excluded.netmask, wireless_address=excluded.wireless_address, wireless_mode=excluded.wireless_mode, wireless_essid=excluded.wireless_essid, wireless_channel=excluded.wireless_channel;', (ipv, iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel))
     conn.commit()
     return(0)
 
@@ -140,13 +141,13 @@ def delete_interface(iface):
     conn.commit()
     return(0)
 
-def query_interface_settings(interface = None):
+def query_interface_settings(interface = None, ipv = 4):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     if (interface):
-        c.execute('SELECT iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ?;', (interface, ))
+        c.execute('SELECT ipv, iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings WHERE iface = ? and ipv = ?;', (interface, ipv, ))
     else:
-        c.execute('SELECT iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
+        c.execute('SELECT ipv, iface, inet, address, netmask, wireless_address, wireless_mode, wireless_essid, wireless_channel FROM interface_settings;')
     columns = list(map(lambda x: x[0], c.description))
     columns_length = len(columns)
     
@@ -414,7 +415,7 @@ def make_olsrd_config():
     config_file = '/etc/olsrd/olsrd.conf'
 
     interface = query_setting('mesh_interface')
-    ifes_settings = query_interface_settings(interface)
+    ifes_settings = query_interface_settings(interface, 4)
     if ifes_settings:
         if_settings = ifes_settings[0]
         address = if_settings['address']
@@ -493,7 +494,7 @@ def setup_db():
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
-    c.execute('CREATE TABLE interface_settings (iface text PRIMARY KEY, inet text, address text, netmask text, wireless_address text, wireless_mode text, wireless_essid text, wireless_channel text)')
+    c.execute('CREATE TABLE interface_settings (ipv integer, iface text, inet text, address text, netmask text, wireless_address text, wireless_mode text, wireless_essid text, wireless_channel text, UNIQUE(ipv, iface))')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
     c.execute('CREATE TABLE services (service_id integer PRIMARY KEY AUTOINCREMENT NOT NULL, name text, host text, port integer, protocol text, local_port integer, path text);')
     conn.commit()
@@ -525,8 +526,19 @@ def setup_initial_settings():
 # Misc Utils #
 ##############
 
+def generate_ipv4(hostname):
+    return('10.%s' % '.'.join(magic_string_to_nums(256, hostname, 3, '{}')))
+
+def generate_ipv6(ssid, hostname, index = '1'):
+    mesh_block = ''.join(magic_string_to_nums(16, ssid, 4))
+    host = magic_string_to_nums(16, hostname, 8)
+    host_block1 = ''.join(host[0:3])
+    host_block2 = ''.join(host[4:])
+    indx_block = ''.join(magic_string_to_nums(16, index, 4))
+    return('fd00::%s:%s:%s:%s/80' % (mesh_block, host_block1, host_block2, indx_block))
+
 # Used for generating an IP off of a hostname
-def get_bg_by_string(base, bit_groups_count):
+def magic_string_to_nums(num_size, base, bit_groups_count, num_format = '{:x}'):
     # Build a long number based on string
     total  = 0
     offset = 1
@@ -534,12 +546,11 @@ def get_bg_by_string(base, bit_groups_count):
         total = total + (ord(c) * offset)
         offset = offset * 10
 
-    # Pull X 3 digit chunks off and mod them by max size
+    # Pull off bit_groups_count digits by num_size
     bit_groups = []
-    offset = 255
     for bg in range(0, bit_groups_count):
-        bit_groups.append(str(total % 256))
-        total = int(total / 1000)
+        bit_groups.append(num_format.format(int(total % num_size)))
+        total = int(total / 10)
 
     return(bit_groups[::-1])
 

@@ -27,8 +27,7 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(hostname)
 
     def test_gen_ip(self):
-        generated_ip = '10.%s' % ('.'.join(mfl.get_bg_by_string('test1', 3)))
-        self.assertEqual(generated_ip, '10.1.249.109')
+        self.assertEqual(mfl.generate_ipv4('test1'), '10.193.138.109')
 
 if (__name__ == '__main__'):
     unittest.main()
