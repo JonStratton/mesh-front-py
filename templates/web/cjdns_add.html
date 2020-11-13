@@ -1,0 +1,25 @@
+{% extends 'web/base.html' %}
+
+{% block body %}
+
+<h1>CJDNS Add {% if mod_type == 'out_auth' %}Outbound Connection and Authentication{% else %}Inbound Authentication{% endif %}</h1>
+
+<form method="post" action="/cjdns">
+<input type="hidden" name="save" value="1">
+<input type="hidden" name="mod_type" value="{{ mod_type }}">
+<table>
+{% if mod_type == 'out_auth' %}
+   <tr><td>IP and Port</td><td><input type="text" name="ipandport"></td></tr>
+   <tr><td>Is IPv6</td><td><input type="checkbox" name="is_ipv6" value="1"></td></tr>
+{% endif %}
+   <tr><td>Login</td><td><input type="text" name="login"></td></tr>
+   <tr><td>Password</td><td><input type="text" name="password"></td></tr>
+{% if mod_type == 'out_auth' %}
+   <tr><td>Public Key</td><td><input type="text" name="publicKey"></td></tr>
+   <tr><td>Peer Name</td><td><input type="text" name="peerName"></td></tr>
+{% endif %}
+</table>
+<input type="submit" value="Add">
+</form>
+
+{% endblock %}

@@ -305,8 +305,6 @@ def system_mesh_types():
     mesh_types = []
     if os.path.exists('/usr/sbin/batctl'):
         mesh_types.append('batman')
-    if os.path.exists('/opt/cjdns/cjdroute'):
-        mesh_types.append('cjdns')
     if os.path.exists('/usr/local/sbin/olsrd'):
         mesh_types.append('olsr')
     return(mesh_types)
@@ -398,6 +396,33 @@ def clean_network(network):
    clean_network['Mode'] = 'Ad-Hoc' if network.get('capability', '').startswith('IBSS ') else 'normal'
    clean_network['Channel'] = re.sub('[^0-9]','', network.get('DS Parameter set', '') )
    return clean_network
+
+################
+# System CJDNS #
+################
+
+def read_cjdroute_conf():
+    config_file = '/etc/cjdroute.conf'
+    config_file_lines = []
+
+    with open(config_file) as f:
+        for line in f:
+            line = re.sub('\s*\/\/.*$', '', line) # Remove '// Comments\n'
+            config_file_lines.append(line.strip('\n'))
+
+    # Flatten file to remove multi '/* Comments */' line comments
+    config_file_flat = ''.join(config_file_lines)
+    config_file_flat = re.sub('\s*\/\*.*\*\/\s*', '', config_file_flat)
+
+    return(json.loads(config_file_flat))
+
+def make_cjdroute_conf(config_file_json):
+    config_file = '/etc/cjdroute.conf'
+
+    with open(config_file, 'w') as f:
+        f.write(json.dumps(config_file_json, indent=4))
+
+    return(0)
 
 #############
 # Templates #

@@ -109,7 +109,7 @@ cd cjdns-master
 sudo mv cjdroute /usr/bin/cjdroute
 sudo cp contrib/systemd/cjdns.service /etc/systemd/system/
 cd ..
-sudo sh -c '(umask 077 && /usr/bin/cjdroute --genconf > /etc/cjdroute.conf )'
+sudo sh -c '(umask 007 && /usr/bin/cjdroute --genconf > /etc/cjdroute.conf )'
 rm -rf cjdns-master
 
 sudo systemctl daemon-reload
