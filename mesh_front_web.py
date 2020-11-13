@@ -152,9 +152,6 @@ def mesh():
                 mesh6 = mfl.query_interface_settings(mfl.query_setting('mesh_interface'), 6)[0]
                 mesh['inet6'] = mesh6.get('inet', '')
                 mesh['address6'] = mesh6.get('address', '')
-            else:
-                mesh['inet6'] = 'static'
-                mesh['address6'] = mesh6.get('address', '')
 
             if (mfl.query_setting('wireless_interface')):
                 wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
