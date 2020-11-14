@@ -4,14 +4,14 @@
 auto lo
 iface lo inet loopback
 
-{% for iface in ifaces if not iface.wireless_mode and iface.iface != 'bat0' and iface.iface != 'tun0' %}
+{% for iface in ifaces if not iface.wireless_mode and iface.inet and iface.iface != 'bat0' and iface.iface != 'tun0' %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.address%}    address {{iface.address}}{% endif %}
 {%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
 {% endfor %}
 
-{% for iface in ifaces if iface.wireless_mode and iface.iface != 'tun0' %}
+{% for iface in ifaces if iface.wireless_mode and iface.inet and iface.iface != 'tun0' %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.wireless_mode%}    pre-up sleep 5{% endif %}
@@ -22,7 +22,7 @@ iface {{iface.iface}} inet {{iface.inet}}
 {%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
 {% endfor %}
 
-{% for iface in ifaces if iface.iface == 'bat0' %}
+{% for iface in ifaces if iface.inet and iface.iface == 'bat0' %}
 auto {{iface.iface}}
 iface {{iface.iface}} inet{% if iface.ipv == 6 %}6{% endif %} {{iface.inet}}
 {% for mesh_interface in bat_mesh_interfaces %}    pre-up /usr/sbin/batctl if add {{mesh_interface}}

@@ -158,8 +158,7 @@ def mesh():
             system['hostname'] = mfl.system_hostname()
             system['mesh_type'] = mfl.query_setting('mesh_type')
 
-        mesh['inet6'] = mesh6.get('inet', 'static')
-        mesh['address6'] = mesh6.get('address', '')
+        mesh['inet6'] = 'static'
         system['wireless_interfaces'] = mfl.system_interfaces('w')
         system['interfaces'] = mfl.system_interfaces()
         system['uplink'] = mfl.query_setting('uplink')
