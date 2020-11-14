@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = 'Jon Stratton'
 import sys, os, getopt
-from flask import Flask, render_template, request, session, escape, send_from_directory
+from flask import Flask, render_template, request, session, escape, send_from_directory, abort
 import mesh_front_lib as mfl
 
 # Defaults
@@ -44,24 +44,6 @@ def debug():
        commands_and_outputs = mfl.system_debug(cmds)
        return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
 
-@app.route('/ifconfig', methods=['GET', 'POST'])
-def if_config():
-    if not session.get('logged_in'):
-       return render_template('web/login.html')
-    else:
-        # If an Interface is passed in, update it
-        escaped_request = escape_request(request.values)
-        if (escaped_request.get('save')):
-            mfl.upsert_interface(escaped_request)
-            mfl.refresh_configs()
-            mfl.upsert_setting('should_reboot', 'true')
-        # If we have an interface, only get it
-        interface = None
-        if (escaped_request.get('interface')):
-            interface = escaped_request.get('interface')
-        if_configs = mfl.query_interface_settings(interface)
-        return render_template('web/ifconfig.html', ifaces=if_configs)
-
 @app.route('/scan')
 def scan():
     if not session.get('logged_in'):
@@ -69,6 +51,51 @@ def scan():
     else:
         networks = mfl.system_wifi_networks()
         return render_template('web/scan.html', networks=networks)
+
+@app.route('/cjdns', methods=['GET', 'POST'])
+@app.route('/cjdns/<mod_type>/<action>', methods=['GET', 'POST'])
+@app.route('/cjdns/<mod_type>/<action>/<mod_item>', methods=['GET', 'POST'])
+def cjdns(mod_type = None, action = None, mod_item = None):
+    if not os.path.isfile('/etc/cjdroute.conf'):
+        abort(401)
+    elif not session.get('logged_in'):
+        return render_template('web/login.html')
+    else:
+        if (action == 'add'):
+            return render_template('web/cjdns_add.html', mod_type=mod_type)
+
+        escaped_request = escape_request(request.values)
+        cjdroute_conf = mfl.read_cjdroute_conf()
+        if (request.values.get('save')):
+            if (escaped_request.get('mod_type') == 'in_auth'):
+                login = escaped_request.get('login')
+                password = escaped_request.get('password')
+                cjdroute_conf['authorizedPasswords'].append({'user': login, 'password': password})
+            elif (escaped_request.get('mod_type') == 'out_auth'):
+                ipandport = str(escaped_request.get('ipandport'))
+                is_ipv6 = 1 if escaped_request.get('is_ipv6') else 0
+                new_out = {'login': escaped_request.get('login'),
+                    'password': escaped_request.get('password'),
+                    'publicKey': escaped_request.get('publicKey'),
+                    'peerName': escaped_request.get('peerName')}
+                cjdroute_conf['interfaces']['UDPInterface'][is_ipv6]['connectTo'][ipandport] = new_out
+            mfl.make_cjdroute_conf(cjdroute_conf)
+        if (action == 'delete' and mod_item):
+            if (mod_type == 'in_auth'):
+                index_num = int(mod_item)
+                del(cjdroute_conf['authorizedPasswords'][index_num])
+            elif (mod_type == 'out_auth'):
+                try: # Just attempt to delete the Connection from IPv4 and 6
+                    del(cjdroute_conf['interfaces']['UDPInterface'][0]['connectTo'][mod_item])
+                except:
+                    pass
+                try:
+                    del(cjdroute_conf['interfaces']['UDPInterface'][1]['connectTo'][mod_item])
+                except:
+                    pass
+            mfl.make_cjdroute_conf(cjdroute_conf)
+
+        return render_template('web/cjdns.html', cjdns=cjdroute_conf)
 
 @app.route('/mesh', methods=['GET', 'POST'])
 def mesh():
@@ -91,11 +118,21 @@ def mesh():
                     'wireless_channel': escaped_request.get('wireless_channel'),
                     'wireless_essid': escaped_request.get('wireless_essid')}
             if (escaped_request.get('system_mesh_type') == 'batman'):
+                # Auto gen ipv6 if checked
+                mesh_address_ipv6 = escaped_request.get('mesh_address_ipv6', '')
+                if (escaped_request.get('autoconfig_ipv6') == 'on'):
+                    mesh_address_ipv6 = mfl.generate_ipv6(escaped_request.get('wireless_essid'), mfl.system_hostname())
+
                 mesh_iface = { 'iface': escaped_request.get('mesh_interface'),
                         'inet': escaped_request.get('mesh_inet'),
                         'address': escaped_request.get('mesh_address'),
                         'netmask': escaped_request.get('mesh_netmask')}
                 mfl.upsert_interface(mesh_iface)
+                mesh_iface_ipv6 = { 'iface': escaped_request.get('mesh_interface'),
+                        'inet': escaped_request.get('mesh_inet_ipv6'),
+                        'address': mesh_address_ipv6,
+			'ipv': 6}
+                mfl.upsert_interface(mesh_iface_ipv6)
             elif (escaped_request.get('system_mesh_type') == 'olsr'):
                 wireless_iface['address'] = escaped_request.get('mesh_address')
                 wireless_iface['netmask'] = escaped_request.get('mesh_netmask')
@@ -111,12 +148,18 @@ def mesh():
             system, mesh, wireless = mfl.mesh_get_defaults(escaped_request)
         else:
             if (mfl.query_setting('mesh_interface')):
-                mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'))[0]
+                mesh = mfl.query_interface_settings(mfl.query_setting('mesh_interface'), 4)[0]
+                mesh6 = mfl.query_interface_settings(mfl.query_setting('mesh_interface'), 6)[0]
+                mesh['inet6'] = mesh6.get('inet', '')
+                mesh['address6'] = mesh6.get('address', '')
+
             if (mfl.query_setting('wireless_interface')):
                 wireless = mfl.query_interface_settings(mfl.query_setting('wireless_interface'))[0]
             system['hostname'] = mfl.system_hostname()
             system['mesh_type'] = mfl.query_setting('mesh_type')
 
+        mesh['inet6'] = mesh6.get('inet', 'static')
+        mesh['address6'] = mesh6.get('address', '')
         system['wireless_interfaces'] = mfl.system_interfaces('w')
         system['interfaces'] = mfl.system_interfaces()
         system['uplink'] = mfl.query_setting('uplink')
