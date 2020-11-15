@@ -4,30 +4,27 @@
 auto lo
 iface lo inet loopback
 
-{% for iface in ifaces if not iface.wireless_mode and iface.inet and iface.iface != 'bat0' and iface.iface != 'tun0' %}
-auto {{iface.iface}}
-iface {{iface.iface}} inet {{iface.inet}}
-{%if iface.address%}    address {{iface.address}}{% endif %}
-{%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
+{% for interface in interfaces if interface.inet and interface.iface != 'bat0' and interface.iface != 'tun0' and interface.iface != wireless_interface %}
+auto {{interface.iface}}
+iface {{interface.iface}} inet {{interface.inet}}
+{%if interface.address%}    address {{interface.address}}{% endif %}
+{%if interface.netmask%}    netmask {{interface.netmask}}{% endif %}
 {% endfor %}
 
-{% for iface in ifaces if iface.wireless_mode and iface.inet and iface.iface != 'tun0' %}
-auto {{iface.iface}}
-iface {{iface.iface}} inet {{iface.inet}}
-{%if iface.wireless_mode%}    pre-up sleep 5{% endif %}
-{%if iface.address%}    address {{iface.address}}{% endif %}
-{%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
-{%if iface.wireless_mode%}    wireless-mode {{iface.wireless_mode}}{% endif %}
-{%if iface.wireless_channel%}    wireless-channel {{iface.wireless_channel}}{% endif %}
-{%if iface.wireless_essid%}    wireless-essid {{iface.wireless_essid}}{% endif %}
+{% for interface in interfaces if interface.inet and interface.iface == wireless_interface %}
+auto {{interface.iface}}
+iface {{interface.iface}} inet manual
+    pre-up sleep 5
+    wireless-mode ad-hoc
+    wireless-essid {{wireless_ssid}}
+    wireless-channel {{wireless_channel}}
 {% endfor %}
 
-{% for iface in ifaces if iface.inet and iface.iface == 'bat0' %}
-auto {{iface.iface}}
-iface {{iface.iface}} inet{% if iface.ipv == 6 %}6{% endif %} {{iface.inet}}
-{% for mesh_interface in bat_mesh_interfaces %}    pre-up /usr/sbin/batctl if add {{mesh_interface}}
-{% endfor %}
-{%if bat_gw_mode%}    pre-up /usr/sbin/batctl gw_mode {{bat_gw_mode}}{% endif %}
-{%if iface.address%}    address {{iface.address}}{% endif %}
-{%if iface.netmask%}    netmask {{iface.netmask}}{% endif %}
+{% for interface in interfaces if interface.inet and interface.iface == 'bat0' %}
+auto {{interface.iface}}
+iface {{interface.iface}} inet{% if interface.ipv == 6 %}6{% endif %} {{interface.inet}}
+    pre-up /usr/sbin/batctl if add {{wireless_interface}}
+    pre-up /usr/sbin/batctl gw_mode {{gw_mode}}
+{%if interface.address%}    address {{interface.address}}{% endif %}
+{%if interface.netmask%}    netmask {{interface.netmask}}{% endif %}
 {% endfor %}

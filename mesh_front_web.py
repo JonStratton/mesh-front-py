@@ -60,16 +60,24 @@ def wireless():
     else:
         if request.values.get('save'):
             escaped_request = escape_request(request.values)
+            mfl.upsert_setting('wireless_interface', escaped_request.get('wireless_interface'))
             if (escaped_request.get('selected_wireless_mesh')):
                 wireless_ssid, wireless_channel = escaped_request.get('selected_wireless_mesh').split('|', 1)
-                print(wireless_ssid)
                 mfl.upsert_setting('wireless_ssid', wireless_ssid)
                 mfl.upsert_setting('wireless_channel', str(int(wireless_channel)))
             else:
                 mfl.upsert_setting('wireless_ssid', escaped_request.get('wireless_ssid'))
                 mfl.upsert_setting('wireless_channel', escaped_request.get('wireless_channel'))
+            mfl.refresh_configs()
         settings = {}
-        settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes()
+
+        if mfl.query_setting('wireless_interface'):
+            settings['wireless_interface'] = mfl.query_setting('wireless_interface')
+            settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes(mfl.query_setting('wireless_interface'))
+        elif (len(mfl.system_interfaces('w')) >= 1):
+            settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes(system_interfaces('w')[0])
+
+        settings['available_wireless_interfaces'] = mfl.system_interfaces('w')
         settings['wireless_ssid'] = mfl.query_setting('wireless_ssid')
         settings['wireless_channel'] = mfl.query_setting('wireless_channel')
         return render_template('web/wireless.html', settings = settings)
@@ -95,6 +103,7 @@ def uplink():
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
             mfl.upsert_interface(mesh_interface)
+            mfl.refresh_configs()
         settings = {}
         settings['uplink_interfaces'] = mfl.system_interfaces()
         settings['uplink_interface' ] = mfl.query_setting('uplink_interface')

@@ -11,18 +11,14 @@ env = Environment(loader=FileSystemLoader('templates'))
 ###################
 # Refresh Configs #
 ###################
-    # Basically, saves everything to system files
+    # Writes all the system files
 
 def refresh_configs():
     mesh_interface = query_setting('mesh_interface')
     uplink_interface = query_setting('uplink_interface')
 
-    mesh_interfaces = [ query_setting('wireless_interface') ]
-    gw_mode = 'server' if (uplink_interface) else 'client'
-
     # Make interfaces Files
-    interfaces = query_interface_settings()
-    make_interface_config(interfaces, gw_mode, mesh_interfaces)
+    make_interface_config()
 
     # Bridge Interfaces if sharing internet
     if (uplink_interface):
@@ -45,20 +41,60 @@ def refresh_configs():
 # Wireless #
 ############
 
-def get_available_wireless_meshes():
+def get_available_wireless_meshes(wireless_interface):
     wireless_meshes = []
-    for network in system_wifi_networks():
+    for network in system_wifi_networks(wireless_interface):
         if (network.get('Mode') == 'Ad-Hoc'):
             wireless_meshes.append(network)
     return(wireless_meshes)
 
-###########
-# Network #
-###########
+# Basically make the output from "iw XXX scan" look like "iwlist XXX scan" for some things.
+def clean_network(network):
+    clean_network = {}
+    clean_network['ESSID'] = network.get('SSID', '')
+    clean_network['Quality'] = network.get('signal', '')
+    clean_network['Mode'] = 'Ad-Hoc' if network.get('capability', '').startswith('IBSS ') else 'normal'
+    clean_network['Channel'] = re.sub('[^0-9]','', network.get('DS Parameter set', '') )
+    return clean_network
 
-###########
-# Overlay #
-###########
+def system_wifi_networks(interface):
+    net_list = []
+
+    # If the interface isnt up, brink it up
+    if_upd = 0
+    if (system_get_interface_state(interface) != 'up'):
+        system_set_interface_state(interface, 'up')
+        if_upd = 1
+
+    network  = {}
+    split_col = re.compile('\s*:|=\s*')
+    split_first = re.compile('\s+|\(')
+    cmd = 'sudo iw %s scan' % (interface)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line_bytes in p.stdout.readlines():
+        line = line_bytes.decode('utf-8')
+
+        if line.startswith('BSS '): # New record found
+            if (network):
+                net_list.append(clean_network(network))
+                network = {}
+            split_line = split_first.split(line)
+            key = split_line[0].strip()
+            network[key] = split_line[1].strip()
+
+        else:
+            split_line = split_col.split(line)
+            key = split_line[0].strip()
+            network[key] = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
+
+    retval = p.wait
+    net_list.append(clean_network(network))
+
+    # Take down interface if it was set up
+    if (if_upd):
+        system_set_interface_state(interface, 'up')
+
+    return net_list
 
 ######
 # DB #
@@ -111,15 +147,6 @@ def query_interface_settings(interface = None, ipv = 4):
             record[columns[col_num]] = row[col_num]
         records.append(record)
 
-    return(records)
-
-def query_interfaces_configured():
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-    c.execute('SELECT iface FROM interface_settings;')
-    records = []
-    for row in c.fetchall():
-        records.append(row[0])
     return(records)
 
 def upsert_user(username, password_hash):
@@ -286,23 +313,21 @@ def system_wifi_networks(interface = None):
 
     return net_list
 
-# Basically make the output from "iw XXX scan" look like "iwlist XXX scan" for some things.
-def clean_network(network):
-    clean_network = {}
-    clean_network['ESSID'] = network.get('SSID', '')
-    clean_network['Quality'] = network.get('signal', '')
-    clean_network['Mode'] = 'Ad-Hoc' if network.get('capability', '').startswith('IBSS ') else 'normal'
-    clean_network['Channel'] = re.sub('[^0-9]','', network.get('DS Parameter set', '') )
-    return clean_network
-
 #############
 # Templates #
 #############
 
-def make_interface_config(interfaces, gw_mode='', mesh_interfaces=[]):
+def make_interface_config():
     config_file = '/etc/network/interfaces'
+
+    interfaces = query_interface_settings()
+    gw_mode = 'server' if (query_setting('uplink_interface')) else 'client'
+    wireless_interface = query_setting('wireless_interface')
+    wireless_ssid = query_setting('wireless_ssid')
+    wireless_channel = query_setting('wireless_channel')
+
     template = env.get_template('interfaces')
-    output_from_parsed_template = template.render(ifaces=interfaces, bat_gw_mode=gw_mode, bat_mesh_interfaces=mesh_interfaces)
+    output_from_parsed_template = template.render(interfaces=interfaces, gw_mode=gw_mode, wireless_interface=wireless_interface, wireless_ssid=wireless_ssid, wireless_channel=wireless_channel)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
@@ -351,7 +376,7 @@ def setup_db():
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
-    c.execute('CREATE TABLE interface_settings (ipv integer, iface text, inet text, address text, netmask text, wireless_essid text, wireless_channel text, UNIQUE(ipv, iface))')
+    c.execute('CREATE TABLE interface_settings (ipv integer, iface text, inet text, address text, netmask text, UNIQUE(ipv, iface))')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
     conn.commit()
     conn.close()
@@ -374,31 +399,6 @@ def setup_initial_settings():
 ##############
 # Misc Utils #
 ##############
-
-def generate_ipv6(ssid, hostname, index = '1'):
-    mesh_block = ''.join(magic_string_to_nums(16, ssid, 4))
-    host = magic_string_to_nums(16, hostname, 8)
-    host_block1 = ''.join(host[0:3])
-    host_block2 = ''.join(host[4:])
-    indx_block = ''.join(magic_string_to_nums(16, index, 4))
-    return('fd00::%s:%s:%s:%s/80' % (mesh_block, host_block1, host_block2, indx_block))
-
-# Used for generating an IP off of a hostname
-def magic_string_to_nums(num_size, base, bit_groups_count, num_format = '{:x}'):
-    # Build a long number based on string
-    total  = 0
-    offset = 1
-    for c in base[::-1]:
-        total = total + (ord(c) * offset)
-        offset = offset * 10
-
-    # Pull off bit_groups_count digits by num_size
-    bit_groups = []
-    for bg in range(0, bit_groups_count):
-        bit_groups.append(num_format.format(int(total % num_size)))
-        total = int(total / 10)
-
-    return(bit_groups[::-1])
 
 # Password Salt in file to help passwords in case of sqli
 # Generate password salt at first run.
