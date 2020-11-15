@@ -85,31 +85,38 @@ def wireless():
 @app.route('/network', methods=['GET', 'POST'])
 def uplink():
     if not session.get('logged_in'):
-       return render_template('web/login.html')
+        return render_template('web/login.html')
     else:
-        mesh_interface = mfl.query_interface_settings('bat0', 4)[0] # TODO: UNBAD
         if request.values.get('save'):
             escaped_request = escape_request(request.values)
-            mfl.upsert_setting('uplink_interface', escaped_request.get('uplink_interface'))
-            mesh_interface['address'] = escaped_request.get('ip_address')
-            mesh_interface['netmask'] = escaped_request.get('netmask')
+
+            mesh_interface = { 'iface': 'bat0',
+                'address': escaped_request.get('ip_address'),
+                'netmask': escaped_request.get('netmask')}
             if (escaped_request.get('dhcp') == 'server'):
                 mesh_interface['inet'] = 'static'
-            elif (escaped_request.get('dhcp') == 'server'):
-                mesh_interface['inet'] = 'static'
+            elif (escaped_request.get('dhcp') == 'client'):
+                mesh_interface['inet'] = 'dhcp'
             else:
                 mesh_interface['inet'] = 'manual'
+            mfl.upsert_interface(mesh_interface)
+
+            mfl.upsert_setting('uplink_interface', escaped_request.get('uplink_interface'))
             mfl.upsert_setting('dhcp_start', escaped_request.get('dhcp_start'))
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
             mfl.upsert_interface(mesh_interface)
             mfl.refresh_configs()
+
         settings = {}
+        if (mfl.query_interface_settings('bat0', 4)):
+            mesh_interface = mfl.query_interface_settings('bat0', 4)[0]
+            settings['ip_address'] = mesh_interface.get('address')
+            settings['netmask'] = mesh_interface.get('netmask')
+
         settings['uplink_interfaces'] = mfl.system_interfaces()
         settings['uplink_interface' ] = mfl.query_setting('uplink_interface')
         settings['dhcp'] = mfl.query_setting('dhcp')
-        settings['ip_address'] = mesh_interface.get('address')
-        settings['netmask'] = mesh_interface.get('netmask')
         settings['dhcp_start'] = mfl.query_setting('dhcp_start')
         settings['dhcp_end'] = mfl.query_setting('dhcp_end')
         return render_template('web/network.html', settings = settings)
