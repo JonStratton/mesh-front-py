@@ -1,0 +1,23 @@
+<h3 align="center">{{ system_hostname() }}</h3>
+<p align="center">
+{% if session['logged_in'] %}
+<a href="/settings">Settings</a> |
+<a href="/wireless">Wireless</a> |
+<a href="/network">Network</a> |
+<a href="/overlay">Overlay</a> |
+<a href="/debug">Debug</a> |
+<a href="/logout">Logout</a> |
+{% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %}
+{% endif %}
+</p>
+<hr>
+<script src="static/jquery.min.js"></script>
+<style>
+table select {
+   width: 100%
+}
+table input {
+   width: 100%
+}
+</style>
+{% block body %}{% endblock %}

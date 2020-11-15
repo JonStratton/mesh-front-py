@@ -5,7 +5,7 @@ It takes inspiration (and indeed some configuration templates) from HSMM-pi (htt
 
 ## Goals
 1. Allow joining an existing mesh network fairly easily. If it sees an Ad Hoc network with an ESSID or Address it recognizes, it should be a matter of hitting the "Mesh" button on the "Scan" page. 
-1. As few dependencies as possible. Just ideally Python-flask, OLRS, and GNU/Linux system commands.
+1. As few dependencies as possible. Just ideally Python-flask and GNU/Linux system commands.
 1. Use the most common, light and shallow version of external dependencies as possible. 
 	1. Common so they will be supported as packages in most Distros for a while
 	1. Light/shallow so one unused inclusion doesn't cause a rewrite. I
@@ -33,11 +33,6 @@ If you run this as root, you will be prompted for a non root username. If you ru
 If you want to build and run cjdns on the node and be managed by mesh-front-py, you can set a toggle before running the installed.
 
     CJDNS=1; export CJDNS
-    ./install.sh
-
-Note, OLSR has been turned off by default. If you want to also install OLSR (for instance, if you are making an AREDN / Broadband Hamnet compatible node), make sure to set an “OLSR” environmental variable ahead of the install.sh script.
-
-    OLSR=1; export OLSR
     ./install.sh
 
 The installer will attempt to back up some current system files, and make new version that are editable by users in the "mesh-front" group. Once the installer finishes (and you optionally log out and on again), you should be able to run the web front-end with the following command:
@@ -132,5 +127,3 @@ If you do see the neighbors, then you should be able to ping the bat0 ipv4 or ip
     PING fe80::8ce:70ff:fe5e:63b3(fe80::8ce:70ff:fe5e:63b3) from :: bat0: 56 data bytes
     64 bytes from fe80::8ce:70ff:fe5e:63b3%bat0: icmp_seq=1 ttl=64 time=4.93 ms
     ....
-
-### OLSR Meshes

@@ -1,0 +1,30 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<form method="post">
+<input type="hidden" name="save" value="1">
+<table>
+    <caption>Internal Network Settings</caption>
+    <tr><td>Act as Internet Uplink on:</td>
+        <td><select name="uplink_interface">
+            <option></option>
+            {% for interface in settings.uplink_interfaces %}
+            <option {% if interface == settings.uplink_interface %}selected{% endif %}>{{interface}}</option>{% endfor %}
+	</select></td>
+    </tr>
+    <tr><th colspan="2">Legacy Settings</th></tr>
+    <tr><td>Act as DHCP:</td>
+        <td><select name="dhcp">{% for dhcp_setting in ['', 'server', 'client'] %}
+            <option {% if dhcp_setting == settings.dhcp %}selected{% endif %}>{{dhcp_setting}}</option>{% endfor %}
+         </select></td>
+    </tr>
+    <tr><td>IP Address</td><td><input type="text" name="ip_address" value="{{settings.ip_address}}"></td></tr>
+    <tr><td>Netmask</td><td><input type="text" name="netmask" value="{{settings.netmask}}"></td></tr>
+    <tr><td>IP Start</td><td><input type="text" name="dhcp_start" value="{{settings.dhcp_start}}"></td></tr>
+    <tr><td>IP End</td><td><input type="text" name="dhcp_end" value="{{settings.dhcp_end}}"></td></tr>
+</table>
+<input type="submit" value="Save">
+</form>
+
+{% endblock %}
