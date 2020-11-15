@@ -30,7 +30,7 @@ def refresh_configs():
         clear_sysctl_conf()
 
     # DHCP Server if serving internet
-    if (query_setting('dhcp_server_interface')):
+    if (query_setting('dhcp') and query_setting('dhcp') == 'server'):
         make_dnsmasq_conf()
     else:
         clear_dnsmasq_conf()
