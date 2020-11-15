@@ -11,6 +11,9 @@ controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hos
 install_mesh_front()
 {
 # Build lists of packages and files
+if [ $YGGDRASIL = 1 ]; then
+   controlled_system_files="$controlled_system_files /etc/yggdrasil.conf"
+fi
 if [ $CJDNS = 1 ]; then
    package_list_build="$package_list_build build-essential nodejs python2.7"
    controlled_system_files="$controlled_system_files /etc/cjdroute.conf"
@@ -44,7 +47,10 @@ sudo usermod -a -G $myname $installuser
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
 
-# Install Optional Apps
+# Install Optional Overlay Networks
+if [ $YGGDRASIL ]; then
+   install_yggdrasil
+fi
 if [ $CJDNS ]; then
    install_cjdns
 fi
@@ -86,6 +92,18 @@ fi
 echo "Run the following command: newgrp $myname"
 }
 
+# Install yggdrasil
+install_yggdrasil()
+{
+# https://yggdrasil-network.github.io/installation-linux-deb.html
+sudo apt-get install dirmngr
+gpg --fetch-keys https://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/key.txt
+gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo apt-key add -
+echo 'deb http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
+sudo apt-get update
+sudo apt-get install yggdrasil
+}
+
 # Download and build cjdns
 install_cjdns()
 {
@@ -113,6 +131,9 @@ sudo systemctl enable cjdns.service
 uninstall_mesh_front()
 {
 # Unstall Optional Apps
+if [ $YGGDRASIL ]; then
+   uninstall_yggdrasil
+fi
 if [ $CJDNS ]; then
    uninstall_cjdns
 fi
@@ -143,6 +164,13 @@ if [ -d '/etc/NetworkManager' ]; then
    sudo systemctl start NetworkManager
    sudo systemctl enable NetworkManager
 fi
+}
+
+uninstall_yggdrasil()
+{
+sudo apt-get remove yggdrasil
+sudo rm /etc/apt/sources.list.d/yggdrasil.list
+sudo apt-get update
 }
 
 uninstall_cjdns()
