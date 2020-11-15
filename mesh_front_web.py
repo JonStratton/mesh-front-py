@@ -75,7 +75,7 @@ def wireless():
             settings['wireless_interface'] = mfl.query_setting('wireless_interface')
             settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes(mfl.query_setting('wireless_interface'))
         elif (len(mfl.system_interfaces('w')) >= 1):
-            settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes(system_interfaces('w')[0])
+            settings['available_wireless_meshes'] = mfl.get_available_wireless_meshes(mfl.system_interfaces('w')[0])
 
         settings['available_wireless_interfaces'] = mfl.system_interfaces('w')
         settings['wireless_ssid'] = mfl.query_setting('wireless_ssid')
