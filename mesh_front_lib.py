@@ -15,7 +15,7 @@ env = Environment(loader=FileSystemLoader('templates'))
 
 def refresh_configs():
     mesh_interface = query_setting('mesh_interface')
-    uplink_interface = query_setting('uplink')
+    uplink_interface = query_setting('uplink_interface')
 
     mesh_interfaces = [ query_setting('wireless_interface') ]
     gw_mode = 'server' if (uplink_interface) else 'client'
@@ -27,7 +27,7 @@ def refresh_configs():
     # Bridge Interfaces if sharing internet
     if (uplink_interface):
         system_clear_iptables()
-        system_bridge_interfaces(mesh_interface, uplink_interface)
+        system_bridge_interfaces('bat0', uplink_interface)
         make_sysctl_conf()
     else: # Clear the bridge otherwise
         system_clear_iptables()
@@ -311,15 +311,14 @@ def make_dnsmasq_conf():
     config_file = '/etc/dnsmasq.d/mesh-front-dnsmasq.conf'
 
     interfaces = system_interfaces()
-    dhcp_interface = query_setting('dhcp_server_interface')
-    dhcp_server = query_interface_settings(dhcp_interface)[0]
-    dhcp_server['ip_start'] = query_setting('dhcp_server_ip_start')
-    dhcp_server['ip_end'] = query_setting('dhcp_server_ip_end')
+    dhcp_server = query_interface_settings('bat0')[0]
+    dhcp_server['dhcp_start'] = query_setting('dhcp_start')
+    dhcp_server['dhcp_end'] = query_setting('dhcp_end')
     dhcp_server['dns1'] = query_setting('dns1')
     dhcp_server['dns2'] = query_setting('dns2')
 
     template = env.get_template('mesh-front-dnsmasq.conf')
-    output_from_parsed_template = template.render(interfaces = interfaces, dhcp_interface = dhcp_interface, dhcp_server = dhcp_server, hostname = system_hostname())
+    output_from_parsed_template = template.render(interfaces = interfaces, dhcp_server = dhcp_server)
     with open(config_file, 'w') as f:
         f.write(output_from_parsed_template)
     return(0)
