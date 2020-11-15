@@ -1,4 +1,4 @@
 # Created by mesh-front-py
 # Moved to /etc/sudoers.d/
-Cmnd_Alias MESHFRONT = /sbin/iw * scan, /usr/sbin/iptables, /usr/sbin/iptables-save, /usr/sbin/reboot, /usr/sbin/ip link set *, /usr/bin/hostname, /sbin/reboot, /sbin/ip, /bin/hostname, /usr/sbin/batctl n
+Cmnd_Alias MESHFRONT = /sbin/iw * scan, /usr/sbin/iptables, /usr/sbin/iptables-save, /usr/sbin/reboot, /usr/sbin/ip link set *, /sbin/reboot, /sbin/ip, /usr/sbin/batctl n
 %mesh-front ALL=NOPASSWD: MESHFRONT

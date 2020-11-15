@@ -1,19 +1,16 @@
-{% extends 'web/base.html' %}
+{% extends 'web/header.html' %}
 
 {% block body %}
-
-<h1>System Settings</h1>
 
 <form method="post">
 <input type="hidden" name="save" value="1">
 <table>
-	<tr><td>Hostname</td><td><input type="text" name="hostname" value="{{settings.hostname}}"></td></tr>
-	<tr><td>Callsign</td><td><input type="text" name="callsign" value="{{settings.callsign}}"></td></tr>
-	<tr><td>Admin Password</td><td><input type="text" name="password" value="{{settings.password}}"></td></tr>
-	<tr><td>Listen IP</td><td><input type="text" name="listen_ip" value="{{settings.listen_ip}}"></td></tr>
-	<tr><td>Listen Port</td><td><input type="number" name="listen_port" value="{{settings.listen_port}}"></td></tr>
-	<tr><td>DNS 1</td><td><input type="text" name="dns1" value="{{settings.dns1}}"></td></tr>
-	<tr><td>DNS 2</td><td><input type="text" name="dns2" value="{{settings.dns2}}"></td></tr>
+    <caption>Node Settings</caption>
+    <tr><td>Admin Password</td><td><input type="text" name="password" value="{{settings.password}}"></td></tr>
+    <tr><td>Listen IP</td><td><input type="text" name="listen_ip" value="{{settings.listen_ip}}"></td></tr>
+    <tr><td>Listen Port</td><td><input type="number" name="listen_port" value="{{settings.listen_port}}"></td></tr>
+    <tr><td>DNS 1</td><td><input type="text" name="dns1" value="{{settings.dns1}}"></td></tr>
+    <tr><td>DNS 2</td><td><input type="text" name="dns2" value="{{settings.dns2}}"></td></tr>
 </table>
 <input type="submit" value="Save">
 </form>

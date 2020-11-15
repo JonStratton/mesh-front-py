@@ -26,8 +26,5 @@ class TestUtils(unittest.TestCase):
         hostname = mfl.system_hostname()
         self.assertTrue(hostname)
 
-    def test_gen_ip(self):
-        self.assertEqual(mfl.generate_ipv4('test1'), '10.193.138.109')
-
 if (__name__ == '__main__'):
     unittest.main()

@@ -11,16 +11,13 @@ controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hos
 install_mesh_front()
 {
 # Build lists of packages and files
-if [ $CJDNS = 1 ] || [ $OLSR = 1 ]; then
-   package_list_build="$package_list_build build-essential"
+if [ $YGGDRASIL = 1 ]; then
+   package_list="$package_list dirmngr"
+   controlled_system_files="$controlled_system_files /etc/yggdrasil.conf"
 fi
 if [ $CJDNS = 1 ]; then
-   package_list_build="$package_list_build nodejs python2.7"
+   package_list_build="$package_list_build build-essential nodejs python2.7"
    controlled_system_files="$controlled_system_files /etc/cjdroute.conf"
-fi
-if [ $OLSR = 1 ]; then
-   package_list="$package_list bison flex libgps-dev"
-   controlled_system_files="$controlled_system_files /etc/olsrd/olsrd.conf /etc/olsrd/olsrd.key"
 fi
 
 # Install Deps
@@ -51,12 +48,12 @@ sudo usermod -a -G $myname $installuser
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
 
-# Install Optional Apps
+# Install Optional Overlay Networks
+if [ $YGGDRASIL ]; then
+   install_yggdrasil
+fi
 if [ $CJDNS ]; then
    install_cjdns
-fi
-if [ $OLSR ]; then
-   install_olsrd
 fi
 
 # Roll everything up in a tarball for other people to download
@@ -96,6 +93,20 @@ fi
 echo "Run the following command: newgrp $myname"
 }
 
+# Install yggdrasil
+install_yggdrasil()
+{
+# https://yggdrasil-network.github.io/installation-linux-deb.html
+gpg --fetch-keys https://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/key.txt
+gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo apt-key add -
+echo 'deb http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
+sudo apt-get update
+sudo apt-get install -y yggdrasil
+sudo systemctl enable yggdrasil
+sudo systemctl start yggdrasil
+sudo chmod 660 /etc/yggdrasil.conf
+}
+
 # Download and build cjdns
 install_cjdns()
 {
@@ -117,36 +128,17 @@ sudo systemctl start cjdns.service
 sudo systemctl enable cjdns.service
 }
 
-# Download and build olsrd
-install_olsrd()
-{
-if [ ! -e static/olsrd-master.tar.gz ]
-then
-   wget https://github.com/OLSR/olsrd/archive/master.tar.gz -O static/olsrd-master.tar.gz
-fi
-tar xzf static/olsrd-master.tar.gz
-cd olsrd-master
-make
-sudo make install
-make libs
-sudo make libs_install
-cd ..
-sudo cp install/olsrd.init /etc/init.d/olsrd
-sudo cp install/olsrd.default /etc/default/olsrd
-sudo systemctl enable olsrd
-}
-
 #############
 # Uninstall #
 #############
 uninstall_mesh_front()
 {
 # Unstall Optional Apps
+if [ $YGGDRASIL ]; then
+   uninstall_yggdrasil
+fi
 if [ $CJDNS ]; then
    uninstall_cjdns
-fi
-if [ $OLSR ]; then
-   uninstall_olsrd
 fi
 
 # Restore old system files
@@ -177,6 +169,13 @@ if [ -d '/etc/NetworkManager' ]; then
 fi
 }
 
+uninstall_yggdrasil()
+{
+sudo apt-get remove --purge -y yggdrasil
+sudo rm /etc/apt/sources.list.d/yggdrasil.list
+sudo apt-get update
+}
+
 uninstall_cjdns()
 {
 sudo systemctl disable cjdns.service
@@ -184,18 +183,6 @@ sudo rm /etc/systemd/system/cjdns.service
 sudo rm /usr/bin/cjdroute
 sudo rm /etc/cjdroute.conf
 sudo rm /etc/cjdroute.conf.mesh-front-backup
-}
-
-uninstall_olsrd()
-{
-sudo systemctl disable olsrd
-cd olsrd-master
-sudo make uninstall
-sudo make libs_uninstall
-cd ..
-sudo rm /etc/init.d/olsrd
-sudo rm /etc/default/olsrd
-sudo rm /etc/olsrd/olsrd.conf.mesh-front-backup
 }
 
 ##################

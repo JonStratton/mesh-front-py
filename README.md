@@ -1,22 +1,17 @@
 # mesh-front-py
 mesh-front-pi is basically a flask front-end for some command line mesh networking configurations. Basically, any old Debian based Laptop or single board computer you have laying around should be easy to turn into a mesh node with very little work or knowledge of mesh networking software. And if you dont like it, you should be able to remove it and have a working system without doing an entire reinstall. 
 
-It takes inspiration (and indeed some configuration templates) from HSMM-pi (https://github.com/urlgrey/hsmm-pi). The defunct "Project Byzantium" was also heavily in mind when I created this. 
+It takes inspiration from HSMM-pi (https://github.com/urlgrey/hsmm-pi) and the defunct "Project Byzantium" project. 
 
 ## Goals
-1. Allow joining an existing mesh network fairly easily. If it sees an Ad Hoc network with an ESSID or Address it recognizes, it should be a matter of hitting the "Mesh" button on the "Scan" page. 
-1. As few dependencies as possible. Just ideally Python-flask, OLRS, and GNU/Linux system commands.
+1. Allow joining an existing mesh network fairly easily. If it sees an Ad Hoc network, it should be a matter of selecting in on the Wireless page. 
+1. As few dependencies as possible. Just ideally Python-flask and GNU/Linux system commands.
 1. Use the most common, light and shallow version of external dependencies as possible. 
 	1. Common so they will be supported as packages in most Distros for a while
 	1. Light/shallow so one unused inclusion doesn't cause a rewrite. I
 1. Have a front-end that is usable without JavaScript. Lynx, ancient Netscape, Mothra... 
 1. Installs and Uninstalls as cleanly as possible on the file system. 
-1. Allows auto recondition and joining popular meshes (hsmm, aredn, LibreMesh(batman-adv))
-
-## Possible Future Enhancements
-1. Clean up the Mesh Network detection, and populate it with a configuration file.
-1. An optional CJDNS layer.
-1. A configuration option that allows the downloading of mesh-front-pi via the web frontend. 
+1. Works with and even installs common overlay / "darknets", such as Yggdrasil (https://yggdrasil-network.github.io/) and Cjdns (https://github.com/cjdelisle/cjdns/).
 
 ## Pre install check
 Most wifi devices support mesh networking. You can double check this by running the fillowing command and searching for "Mesh" or "IBSS".
@@ -30,14 +25,9 @@ Before installing on the system, you should test it out under a user account (wi
 
 If you run this as root, you will be prompted for a non root username. If you run it as a normal user, you might need to log off and on to make sure you have been added to the new "mesh-front" group.
 
-If you want to build and run cjdns on the node and be managed by mesh-front-py, you can set a toggle before running the installed.
+If you want to build and run Yggdrasil or Cjdns on the node and be managed by mesh-front-py, you can set a toggle YGGDRASIL or CJDNS before running the installed.
 
-    CJDNS=1; export CJDNS
-    ./install.sh
-
-Note, OLSR has been turned off by default. If you want to also install OLSR (for instance, if you are making an AREDN / Broadband Hamnet compatible node), make sure to set an “OLSR” environmental variable ahead of the install.sh script.
-
-    OLSR=1; export OLSR
+    YGGDRASIL=1; export YGGDRASIL
     ./install.sh
 
 The installer will attempt to back up some current system files, and make new version that are editable by users in the "mesh-front" group. Once the installer finishes (and you optionally log out and on again), you should be able to run the web front-end with the following command:
@@ -64,34 +54,17 @@ This will remove the service and the files in /var/www/mesh-front-py. If you wan
 
 ## Using
 
-### Joining a pre-existing Mesh Network
-If you have an Ad Hoc mesh in your area you want to join, it should simply be a matter of going to the "Scan" page, and hitting the "Mesh" button. 
+### Basic
+Go to the "Wireless" page. Your wireless interface should already be selected. If you are joining an existing Mesh network, it should be in the "Available Wireless Meshes" menu. You can select it and save. Otherwise, set the ESSID (Name) and Channel. This will need to be the same on all the nodes.
 
-### Batman Mesh - Basic
-Go to the "Mesh" tab. Under "System" set Mesh Type to "batman".
-
-Under "Interface" select your Wireless Interface. The Wireless Interface Type should be set to "manual" and Wireless Mode should be "ad-hoc". For Batman-adv based meshes, Wireless Address should be empty unless you know what you are doing. 
-
-Under "Mesh", make sure the Mesh Interface is set to "bat0". Batman-adv doesnt need IP addresses to mesh (as its Layer 2). So you could set the Mesh Interface Type to "manual" and leave the IP Address and Netmask empty. You would have a mesh network and it would automatically create IPv6 addresses for the bat0 interface you could ping from other nodes.
-
-However, it might make things easier to temporarily give the node an IPv4 address and netmask. If you eventually want to link this to your internal network, you should choose an IP range separate from that network. For instance, if you use 192.168.1.* for your internal network, you could maybe set your nodes IP addresses to 192.168.199.1 and 2, and set the netmask too 255.255.255.0.
-
-Once your nodes are configured, save and reboot. You should be able to ping one nodes IP address associated with the bat0 Mesh interface from another node. If this doesnt work, go to the debugging section.
+By default, batman-adv gives the node a local link IPv6 address. So with the basic setting or if you intend to use this with an Overlay network, you shouldnt need to set anything else at this point. You should be able to ping the IPv6 Address of all the other nodes at this point.
 
 ### Batman Mesh - Adding an network (internet) gateway
 If you want one node to act as an network (or internet) Uplink to the other nodes, here is one strategy.
 
-On the Uplink Node, under the Mesh settings under “System”, select the interface with the network you want to connect to. This is probably an Ethernet interface. This will use IP tables to forward packets between your network / internet connection on your uplink node’s Mesh interface.
+One internet connected Node will need to be configured as an "Uplink". On the "Network" page, you will need to select the interface with the Internet connection (example eth0). This Node should also probably be configured to act as a DHCP server, so you'll need to give it an IP address and netmask that doesn't conflict with whatever network you are linking too. For instance, if you use 192.168.1.* for your internal network, you could maybe set your Uplink node to 192.168.199.1 and set the netmask too 255.255.255.0. You'll also need to set the IP Start and End Ranges for the IPv4 addresses to give out (example 192.168.199.100 and 192.168.199.200, respectiviely). Save these settings and reboot.
 
-For convenience, we will make the Uplink Node a DNS and DHCP server. This allows it to push out some basic configurations to all the other nodes easily so you don’t have to hard code a bunch of IP addresses, netmasks, and gatways. 
-
-Under “Mesh”, set the Mesh Interface Type to “static” and give it an IP address and netmask that doesn't conflict with whatever network you are linking too. For instance, if you use 192.168.1.* for your internal network, you could maybe set your Uplink node to 192.168.199.1 and set the netmask too 255.255.255.0. Save these settings.
-
-Under the “DHCP Server” settings, confirm that the “bat0” interface is selected, the type is “static”, and the IP Address and Netmask match what you set under the mesh. There should be an IP range for the IP addresses (example, 192.168.199.100 – 192.168.199.200). Save these settings. Your Uplink node should now be configured. Reboot it.
-
-On all your non uplink nodes, simply go to the “Mesh” settings, and set the Mesh Interface Type too “dhcp”. IP Address and Netmask should be empty as they will now get their IP settings from the Uplink node. Save and reboot. 
-
-After reboot, they should have IP addresses in the IP range you set in the DHCP Server settings on the Uplink node. The Uplink node should also be ping-able. If there is an internet connection, you should be able to ping internet addresses and hosts.
+On all your non uplink nodes, simply go to the “Network” settings, and set the "Act as DHCP" too “client”. IP Address and Netmask should be empty as they will now get their IP settings from the Uplink node. Save and reboot. After reboot, they should have IP addresses in the IP range you set in the DHCP Server settings on the Uplink node. The Uplink node should also be ping-able. If there is an internet connection, you should be able to ping internet addresses and hosts.
 
 ## Debugging
 
@@ -132,5 +105,3 @@ If you do see the neighbors, then you should be able to ping the bat0 ipv4 or ip
     PING fe80::8ce:70ff:fe5e:63b3(fe80::8ce:70ff:fe5e:63b3) from :: bat0: 56 data bytes
     64 bytes from fe80::8ce:70ff:fe5e:63b3%bat0: icmp_seq=1 ttl=64 time=4.93 ms
     ....
-
-### OLSR Meshes

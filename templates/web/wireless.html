@@ -1,0 +1,30 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<form method="post">
+<input type="hidden" name="save" value="1">
+<table>
+    <caption>Wireless Mesh Settings</caption>
+
+    <tr><td>Wireless Interfaces:</td>
+        <td><select name="wireless_interface">
+            {% for available_wireless_interface in settings.available_wireless_interfaces %}
+            <option {% if settings.wireless_interface == available_wireless_interface %}selected{% endif %}>{{available_wireless_interface}}</option>{% endfor %}
+         </select></td>
+    </tr>
+
+    <tr><td>Available Wireless Meshes:</td>
+        <td><select name="selected_wireless_mesh">
+            <option></option>
+            {% for wireless_mesh in settings.available_wireless_meshes %}
+            <option value="{{wireless_mesh.ESSID}}|{{wireless_mesh.Channel}}" {% if settings.wireless_ssid == wireless_mesh.ESSID %}selected{% endif %}>{{wireless_mesh.ESSID}}</option>{% endfor %}
+         </select></td>
+    </tr>
+    <tr><td>Wireless ESSID</td><td><input type="text" name="wireless_ssid" value="{{settings.wireless_ssid}}"></td></tr>
+    <tr><td>Wireless Channel</td><td><input type="number" name="wireless_channel" value="{{settings.wireless_channel}}" min="1" max="14"></td></tr>
+</table>
+<input type="submit" value="Save">
+</form>
+
+{% endblock %}
