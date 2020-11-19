@@ -96,6 +96,31 @@ def system_wifi_networks(interface):
 
     return net_list
 
+###########
+# Overlay #
+###########
+
+def read_json_conf(config_file):
+    config_file_lines = []
+
+    with open(config_file) as f:
+        for line in f:
+            line = re.sub('^\s*\/\/.*$', '', line) # Remove '// Comments\n'
+            line = line.strip('\n')
+            if line:
+                config_file_lines.append(line)
+
+    # Flatten file to remove multi line '/* Comments */' comments
+    config_file_flat = ''.join(config_file_lines)
+    config_file_flat = re.sub('\s*\/\*.*\*\/\s*', '', config_file_flat)
+
+    return(json.loads(config_file_flat))
+
+def make_json_conf(config_file, config_file_json):
+    with open(config_file, 'w') as f:
+        f.write(json.dumps(config_file_json, indent=4))
+    return(0)
+
 ######
 # DB #
 ######

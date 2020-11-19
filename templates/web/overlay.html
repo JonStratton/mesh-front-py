@@ -1,0 +1,17 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<table border=1>
+   <caption>Static Peers</caption>
+   {% for peer in settings.StaticPeers %}
+      <tr><td>{{ peer }}</td>
+      <td><form method="get" action="/overlay/delete/{{ loop.index -1 }}"><button type="submit">Delete</button></form></td>
+      </tr>
+    {% endfor %}
+</table>
+<form method="get" action="/overlay/add">
+   <button type="submit">Add</button>
+</form>
+
+{% endblock %}

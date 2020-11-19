@@ -83,7 +83,7 @@ def wireless():
         return render_template('web/wireless.html', settings = settings)
 
 @app.route('/network', methods=['GET', 'POST'])
-def uplink():
+def network():
     if not session.get('logged_in'):
         return render_template('web/login.html')
     else:
@@ -122,14 +122,37 @@ def uplink():
         return render_template('web/network.html', settings = settings)
 
 @app.route('/overlay', methods=['GET', 'POST'])
-def overlay():
+@app.route('/overlay/<action>', methods=['GET', 'POST'])
+@app.route('/overlay/<action>/<mod_item>', methods=['GET', 'POST'])
+def overlay(action = None, mod_item = None):
     if not session.get('logged_in'):
        return render_template('web/login.html')
-    else:
+    elif os.path.isfile('/etc/yggdrasil.conf') or os.path.isfile('/etc/cjdroute.conf'):
+        if (action == 'add'):
+            return render_template('web/overlay_add.html')
+
         if request.values.get('save'):
-            process_request(request.values)
+            escaped_request = escape_request(request.values)
+            if escaped_request.get('peer'):
+                if os.path.isfile('/etc/yggdrasil.conf'):
+                    yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+                    yggdrasil['Peers'].append(escaped_request.get('peer'))
+                    mfl.make_json_conf('/etc/yggdrasil.conf', yggdrasil)
+        elif (action == 'delete' and mod_item):
+            if os.path.isfile('/etc/yggdrasil.conf'):
+                index_num = int(mod_item)
+                yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+                del(yggdrasil['Peers'][index_num])
+                mfl.make_json_conf('/etc/yggdrasil.conf', yggdrasil)
+                
+            
         settings = {}
+        if os.path.isfile('/etc/yggdrasil.conf'):
+            yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+            settings['StaticPeers'] = yggdrasil.get('Peers', [])
         return render_template('web/overlay.html', settings = settings)
+    else:
+       abort(401)
 
 # Just reboot.
 @app.route('/reboot')

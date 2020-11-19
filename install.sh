@@ -102,6 +102,7 @@ gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo apt-key add -
 echo 'deb http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
 sudo apt-get update
 sudo apt-get install -y yggdrasil
+sudo yggdrasil -genconf -json > /etc/yggdrasil.conf
 sudo systemctl enable yggdrasil
 sudo systemctl start yggdrasil
 sudo chmod 660 /etc/yggdrasil.conf
