@@ -2,9 +2,11 @@
 
 {% block body %}
 
+<h3>Broadcasted Local Services</h3>
+{% if local_services %}
 <table>
    <tr><th>Port</th><th>Protocol</th><th>Text</th></tr>
-   {% for service in services %}
+   {% for service in local_services %}
    <tr><td>{{ service.port }}</td>
        <td>{{ service.protocol }}</td>
        <td>{{ service.text }}</td>
@@ -12,10 +14,25 @@
    </tr>
 {% endfor %}
 </table>
+{% endif %}
 
 <form method="get" action="/services/add">
-	<button type="submit">Add Service</button>
+   <button type="submit">Add Local Service</button>
 </form>
+
+<h3>Available Services on Network</h3>
+{% if remote_services %}
+<table>
+   <tr><th>Name</th><th>Hostname</th><th>IP</th><th>Port</th><th>Text</th></tr>
+   {% for service in remote_services %}
+   <tr><td>{{ service.name }}</td>
+       <td>{{ service.avahi_hostname }}</td>
+       <td>{{ service.ip }}</td>
+       <td>{{ service.port }}</td>
+       <td>{{ service.txt_record }}</td>
+   </tr>
+{% endfor %}
 </table>
+{% endif %}
 
 {% endblock %}

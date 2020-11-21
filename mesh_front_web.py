@@ -168,10 +168,12 @@ def services(action = 'display', port = None):
         if (action == 'add'):
             return render_template('web/services_add.html')
         elif (action == 'delete' and port):
-            mfl.delete_service(port)
-            mfl.refresh_services()
-        services = mfl.query_services()
-        return render_template('web/services.html', services = services, hostname = mfl.system_hostname())
+            for saved_service in mfl.query_services(port): # Only delete it if we created it...
+                mfl.delete_service(port)
+                os.remove(mfl.avahi_service_file(saved_service))
+        local_services = mfl.query_services()
+        remote_services = mfl.avahi_browse()
+        return render_template('web/services.html', local_services=local_services, remote_services=remote_services)
 
 # Just reboot.
 @app.route('/reboot')

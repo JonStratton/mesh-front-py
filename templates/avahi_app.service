@@ -1,10 +1,10 @@
 <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
 <service-group>
-<name replace-wildcards="yes">%h_{{service_type}}</name>
+<name replace-wildcards="yes">%h_{{service.protocol}}</name>
 <service>
-<type>_{{service_type}}._tcp</type>
-<txt-record>{{text}}</txt-record>
-<port>{{service_port}}</port>
+<type>_{{service.protocol}}._tcp</type>
+<txt-record>{{service.text}}</txt-record>
+<port>{{service.port}}</port>
 </service>
 </service-group>

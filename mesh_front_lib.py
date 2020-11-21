@@ -125,10 +125,32 @@ def make_json_conf(config_file, config_file_json):
 # Services #
 ############
 
-def refresh_services
+def refresh_services():
     for service in query_services():
-        print(service)
+        make_avahi_service(service)
     return(0)
+
+def avahi_service_file(service): # Careful now
+    port = int(service.get('port', 0))
+    protocol = service.get('protocol', '')
+    protocol = re.sub('[\W_]+', '', protocol)
+    return('/etc/avahi/services/%s_%s.service' % (str(port), protocol))
+
+def avahi_browse():
+    remote_services = []
+    split_col = re.compile('"*;"*')
+    # --ignore-local
+    cmd = 'avahi-browse --all --resolve --parsable --terminate'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line_bytes in p.stdout.readlines():
+        line = line_bytes.decode('utf-8').rstrip()
+        split = split_col.split(line)
+        if split[0] == '=':
+           rs = {}
+           rs['interface'], rs['spv'], rs['name'], rs['type_s'], rs['domain'], rs['avahi_hostname'], rs['ip'], rs['port'], rs['txt_record'] = split[1:]
+           remote_services.append(rs)
+
+    return(remote_services)
 
 ######
 # DB #
@@ -218,7 +240,7 @@ def query_services(port = None):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     if (port):
-        c.execute('SELECT port, protocol, text WHERE port = ?;', (port, ))
+        c.execute('SELECT port, protocol, text FROM services WHERE port = ?;', (port, ))
     else:
         c.execute('SELECT port, protocol, text FROM services;')
     columns = list(map(lambda x: x[0], c.description))
@@ -387,6 +409,15 @@ def system_wifi_networks(interface = None):
 #############
 # Templates #
 #############
+
+def make_avahi_service(service):
+    config_file = avahi_service_file(service)
+
+    template = env.get_template('avahi_app.service')
+    output_from_parsed_template = template.render(service=service)
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
 
 def make_interface_config():
     config_file = '/etc/network/interfaces'
