@@ -1,0 +1,21 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<table>
+   <tr><th>Port</th><th>Protocol</th><th>Text</th></tr>
+   {% for service in services %}
+   <tr><td>{{ service.port }}</td>
+       <td>{{ service.protocol }}</td>
+       <td>{{ service.text }}</td>
+       <td><form method="get" action="/services/delete/{{ service.port }}"><button type="submit">Delete</button></form></td>
+   </tr>
+{% endfor %}
+</table>
+
+<form method="get" action="/services/add">
+	<button type="submit">Add Service</button>
+</form>
+</table>
+
+{% endblock %}

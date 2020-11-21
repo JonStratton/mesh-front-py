@@ -1,9 +1,9 @@
 #!/bin/sh
 
 myname=mesh-front
-package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
+package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools avahi-utils"
 package_list_build="" # These will be cleaned out (if new) after install
-controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf"
+controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf /etc/avahi/services/"
 
 ###########
 # Install #
@@ -57,7 +57,7 @@ if [ $CJDNS ]; then
 fi
 
 # Roll everything up in a tarball for other people to download
-if [ ! -e static/mesh-front-py.tgz ]; then
+if [ ! -f static/mesh-front-py.tgz ]; then
    tar -czf static/mesh-front-py.tgz \
       --exclude=static/mesh-front-py.tgz \
       --exclude=salt.txt \
@@ -74,7 +74,7 @@ sudo apt-get clean -y
 # Change perms on and backup controlled files
 for system_file in $controlled_system_files
 do
-   if [ -e $system_file ]; then
+   if [ -f $system_file ]; then
       sudo cp $system_file $system_file.$myname-backup
    else
       sudo touch $system_file
@@ -111,7 +111,7 @@ sudo chmod 660 /etc/yggdrasil.conf
 # Download and build cjdns
 install_cjdns()
 {
-if [ ! -e static/cjdns-master.tar.gz ]
+if [ ! -f static/cjdns-master.tar.gz ]
 then
    wget https://github.com/cjdelisle/cjdns/archive/master.tar.gz -O static/cjdns-master.tar.gz
 fi
@@ -145,7 +145,7 @@ fi
 # Restore old system files
 for system_file in $controlled_system_files; do
    sudo rm $system_file
-   if [ -e $system_file.$myname-backup ]
+   if [ -f $system_file.$myname-backup ]
    then
       sudo mv $system_file.$myname-backup $system_file
    else

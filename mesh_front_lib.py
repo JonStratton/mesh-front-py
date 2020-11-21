@@ -121,6 +121,15 @@ def make_json_conf(config_file, config_file_json):
         f.write(json.dumps(config_file_json, indent=4))
     return(0)
 
+############
+# Services #
+############
+
+def refresh_services
+    for service in query_services():
+        print(service)
+    return(0)
+
 ######
 # DB #
 ######
@@ -186,6 +195,43 @@ def user_auth(user, password_hash):
     c = conn.cursor()
     c.execute('SELECT count(*) FROM user_settings WHERE username=? AND password_hash=?;', (user, password_hash))
     return(c.fetchone()[0])
+
+def upsert_service(service):
+    port = service.get('port', None)
+    protocol = service.get('protocol', None)
+    text = service.get('text', None)
+
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('INSERT INTO services VALUES (?, ?, ?) ON CONFLICT(port) DO UPDATE SET protocol=excluded.protocol, text=excluded.text;', (port, protocol, text) )
+    conn.commit()
+    return(0)
+
+def delete_service(port):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('DELETE FROM services WHERE port = ?;', (port, ) )
+    conn.commit()
+    return(0)
+
+def query_services(port = None):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    if (port):
+        c.execute('SELECT port, protocol, text WHERE port = ?;', (port, ))
+    else:
+        c.execute('SELECT port, protocol, text FROM services;')
+    columns = list(map(lambda x: x[0], c.description))
+    columns_length = len(columns)
+
+    services = []
+    for row in c.fetchall():
+        service = {}
+        for col_num in range(0, columns_length):
+            service[columns[col_num]] = row[col_num]
+        services.append(service)
+
+    return(services)
 
 ##########
 # System #
@@ -403,6 +449,7 @@ def setup_db():
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
     c.execute('CREATE TABLE interface_settings (ipv integer, iface text, inet text, address text, netmask text, UNIQUE(ipv, iface))')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
+    c.execute('CREATE TABLE services (port integer PRIMARY KEY AUTOINCREMENT NOT NULL, protocol text, text text);')
     conn.commit()
     conn.close()
     return(0)

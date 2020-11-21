@@ -154,6 +154,25 @@ def overlay(action = None, mod_item = None):
     else:
        abort(401)
 
+@app.route('/services', methods=['GET', 'POST'])
+@app.route('/services/<action>', methods=['GET', 'POST'])
+@app.route('/services/<action>/<port>', methods=['GET', 'POST'])
+def services(action = 'display', port = None):
+    if not session.get('logged_in'):
+        return render_template('web/login.html')
+    else:
+        escaped_request = escape_request(request.values)
+        if (escaped_request.get('save')):
+            mfl.upsert_service(escaped_request)
+            mfl.refresh_services()
+        if (action == 'add'):
+            return render_template('web/services_add.html')
+        elif (action == 'delete' and port):
+            mfl.delete_service(port)
+            mfl.refresh_services()
+        services = mfl.query_services()
+        return render_template('web/services.html', services = services, hostname = mfl.system_hostname())
+
 # Just reboot.
 @app.route('/reboot')
 def reboot():
