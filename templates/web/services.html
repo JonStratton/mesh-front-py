@@ -23,9 +23,10 @@
 <h3>Available Services on Network</h3>
 {% if remote_services %}
 <table>
-   <tr><th>Name</th><th>Hostname</th><th>IP</th><th>Port</th><th>Text</th></tr>
+   <tr><th>Interface</th><th>Name</th><th>Hostname</th><th>IP</th><th>Port</th><th>Text</th></tr>
    {% for service in remote_services %}
-   <tr><td>{{ service.name }}</td>
+   <tr><td>{{ service.interface }}</td>
+       <td>{{ service.name }}</td>
        <td>{{ service.avahi_hostname }}</td>
        <td>{{ service.ip }}</td>
        <td>{{ service.port }}</td>

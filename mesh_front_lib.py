@@ -489,6 +489,8 @@ def setup_initial_settings():
     # Set some server configs we have
     upsert_setting('listen_port', '8080')
     upsert_setting('listen_ip', '0.0.0.0')
+    if os.path.isfile('/etc/yggdrasil.conf') or os.path.isfile('/etc/cjdroute.conf'):
+       upsert_setting('has_overlay', '1')
 
     # Pull in current interface settings
     for iface in system_interfaces():

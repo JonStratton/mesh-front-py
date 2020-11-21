@@ -29,9 +29,12 @@ def escape_request(request):
 
 @app.route('/debug')
 def debug():
-    cmds = ['ip a', 'sudo batctl n']
-    commands_and_outputs = mfl.system_debug(cmds)
-    return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
+    if not session.get('logged_in'):
+       return render_template('web/login.html')
+    else:
+       cmds = ['ip a', 'sudo batctl n']
+       commands_and_outputs = mfl.system_debug(cmds)
+       return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -69,6 +72,7 @@ def wireless():
                 mfl.upsert_setting('wireless_ssid', escaped_request.get('wireless_ssid'))
                 mfl.upsert_setting('wireless_channel', escaped_request.get('wireless_channel'))
             mfl.refresh_configs()
+            mfl.upsert_setting('should_network', '1')
         settings = {}
 
         if mfl.query_setting('wireless_interface'):
@@ -107,7 +111,8 @@ def network():
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
             mfl.upsert_interface(mesh_interface)
             mfl.refresh_configs()
-
+            mfl.upsert_setting('should_network', '')
+            mfl.upsert_setting('should_reboot', '1')
         settings = {}
         if (mfl.query_interface_settings('bat0', 4)):
             mesh_interface = mfl.query_interface_settings('bat0', 4)[0]
@@ -127,7 +132,7 @@ def network():
 def overlay(action = None, mod_item = None):
     if not session.get('logged_in'):
        return render_template('web/login.html')
-    elif os.path.isfile('/etc/yggdrasil.conf') or os.path.isfile('/etc/cjdroute.conf'):
+    elif mfl.query_setting('has_overlay'):
         if (action == 'add'):
             return render_template('web/overlay_add.html')
 
