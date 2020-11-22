@@ -47,7 +47,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(clean_network['Channel'], '10')
 
     def test_avahi_service_file(self):
-        avahi_service_file = mfl.avahi_service_file({'port': 'XX22XX', 'protocol': ';s*s\'h\\'})
+        avahi_service_file = mfl.avahi_service_file({'port': 22, 'protocol': ';s*s\'h\\'})
         self.assertEqual(avahi_service_file, '/etc/avahi/services/22_ssh.service')
 
     def test_hash_password(self):

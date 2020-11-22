@@ -131,11 +131,10 @@ def refresh_services():
     return(0)
 
 def avahi_service_file(service): # Careful now
-    port = service.get('port', '0')
-    port = re.sub('\D', '', port)
+    port = service.get('port', 0)
     protocol = service.get('protocol', '')
     protocol = re.sub('\W', '', protocol)
-    return('/etc/avahi/services/%s_%s.service' % (port, protocol))
+    return('/etc/avahi/services/%s_%s.service' % (str(port), protocol))
 
 def avahi_browse():
     remote_services = []
