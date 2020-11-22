@@ -16,6 +16,8 @@ env = Environment(loader=FileSystemLoader('templates'))
 def refresh_configs():
     mesh_interface = query_setting('mesh_interface')
     uplink_interface = query_setting('uplink_interface')
+    mesh_interface = re.sub('[^0-9a-zA-Z]+', '', mesh_interface)
+    uplink_interface = re.sub('[^0-9a-zA-Z]+', '', uplink_interface)
 
     # Make interfaces Files
     make_interface_config()
@@ -135,7 +137,7 @@ def refresh_services():
 def avahi_service_file(service): # Careful now
     port = service.get('port', 0)
     protocol = service.get('protocol', '')
-    protocol = re.sub('\W', '', protocol)
+    protocol = re.sub('[^0-9a-zA-Z]+', '', protocol)
     return('/etc/avahi/services/%s_%s.service' % (str(port), protocol))
 
 def avahi_browse():
@@ -319,7 +321,7 @@ def system_bridge_interfaces(mesh_interface, uplink_interface, ipv = 4):
 
 def system_clear_iptables(ipv = 4):
     iptables = 'iptables' if (ipv == 4) else 'ip6tables'
-    rules = '/etc/iptables/rules.v4' if (ipv == 4) else '/etc/iptables/rules.v6'
+    rules = 'rules.v4' if (ipv == 4) else 'rules.v6'
     cmds = [ 'sudo %s -P INPUT ACCEPT' % (iptables),
             'sudo %s -P FORWARD ACCEPT' % (iptables),
             'sudo %s -P OUTPUT ACCEPT' % (iptables),
