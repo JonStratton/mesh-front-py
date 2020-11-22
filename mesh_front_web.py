@@ -77,7 +77,6 @@ def wireless():
                 mfl.upsert_interface({'iface': 'bat0', 'inet': 'manual'})
 
             mfl.refresh_configs()
-            mfl.upsert_setting('should_network', '1')
         settings = {}
 
         if mfl.query_setting('wireless_interface'):
@@ -115,7 +114,6 @@ def network():
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
             mfl.refresh_configs()
-            mfl.upsert_setting('should_network', '')
             mfl.upsert_setting('should_reboot', '1')
         settings = {}
         if (mfl.query_interface_settings('bat0', 4)):

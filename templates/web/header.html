@@ -3,7 +3,7 @@
 {% if session['logged_in'] %}
 <a href="/settings">Settings</a> |
 <a href="/wireless">Wireless</a> |
-{% if query_setting('should_network') %}<b>{% endif %}<a href="/network">Network</a>{% if query_setting('should_network') %}</b>{% endif %} |
+<a href="/network">Network</a> |
 <a href="/services">Services</a> |
 {% if query_setting('has_overlay') %}<a href="/overlay">Overlay</a> |{% endif %}
 <a href="/debug">Debug</a> |
