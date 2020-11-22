@@ -29,9 +29,12 @@ def escape_request(request):
 
 @app.route('/debug')
 def debug():
-    cmds = ['ip a', 'sudo batctl n']
-    commands_and_outputs = mfl.system_debug(cmds)
-    return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
+    if not session.get('logged_in'):
+       return render_template('web/login.html')
+    else:
+       cmds = ['ip a', 'sudo batctl n']
+       commands_and_outputs = mfl.system_debug(cmds)
+       return render_template('web/debug.html', commands_and_outputs = commands_and_outputs)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -68,6 +71,11 @@ def wireless():
             else:
                 mfl.upsert_setting('wireless_ssid', escaped_request.get('wireless_ssid'))
                 mfl.upsert_setting('wireless_channel', escaped_request.get('wireless_channel'))
+
+            # If we dont have bat0 now, make one as default.
+            if (not mfl.query_interface_settings('bat0', 4)):
+                mfl.upsert_interface({'iface': 'bat0', 'inet': 'manual'})
+
             mfl.refresh_configs()
         settings = {}
 
@@ -83,7 +91,7 @@ def wireless():
         return render_template('web/wireless.html', settings = settings)
 
 @app.route('/network', methods=['GET', 'POST'])
-def uplink():
+def network():
     if not session.get('logged_in'):
         return render_template('web/login.html')
     else:
@@ -105,9 +113,8 @@ def uplink():
             mfl.upsert_setting('dhcp_start', escaped_request.get('dhcp_start'))
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
-            mfl.upsert_interface(mesh_interface)
             mfl.refresh_configs()
-
+            mfl.upsert_setting('should_reboot', '1')
         settings = {}
         if (mfl.query_interface_settings('bat0', 4)):
             mesh_interface = mfl.query_interface_settings('bat0', 4)[0]
@@ -122,14 +129,58 @@ def uplink():
         return render_template('web/network.html', settings = settings)
 
 @app.route('/overlay', methods=['GET', 'POST'])
-def overlay():
+@app.route('/overlay/<action>', methods=['GET', 'POST'])
+@app.route('/overlay/<action>/<mod_item>', methods=['GET', 'POST'])
+def overlay(action = None, mod_item = None):
     if not session.get('logged_in'):
        return render_template('web/login.html')
-    else:
+    elif mfl.query_setting('has_overlay'):
+        if (action == 'add'):
+            return render_template('web/overlay_add.html')
+
         if request.values.get('save'):
-            process_request(request.values)
+            escaped_request = escape_request(request.values)
+            if escaped_request.get('peer'):
+                if os.path.isfile('/etc/yggdrasil.conf'):
+                    yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+                    yggdrasil['Peers'].append(escaped_request.get('peer'))
+                    mfl.make_json_conf('/etc/yggdrasil.conf', yggdrasil)
+        elif (action == 'delete' and mod_item):
+            if os.path.isfile('/etc/yggdrasil.conf'):
+                index_num = int(mod_item)
+                yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+                del(yggdrasil['Peers'][index_num])
+                mfl.make_json_conf('/etc/yggdrasil.conf', yggdrasil)
+                
+            
         settings = {}
+        if os.path.isfile('/etc/yggdrasil.conf'):
+            yggdrasil = mfl.read_json_conf('/etc/yggdrasil.conf')
+            settings['StaticPeers'] = yggdrasil.get('Peers', [])
         return render_template('web/overlay.html', settings = settings)
+    else:
+       abort(401)
+
+@app.route('/services', methods=['GET', 'POST'])
+@app.route('/services/<action>', methods=['GET', 'POST'])
+@app.route('/services/<action>/<port>', methods=['GET', 'POST'])
+def services(action = 'display', port = None):
+    if not session.get('logged_in'):
+        return render_template('web/login.html')
+    else:
+        escaped_request = escape_request(request.values)
+        if (escaped_request.get('save')):
+            mfl.upsert_service(escaped_request)
+            mfl.refresh_services()
+        if (action == 'add'):
+            return render_template('web/services_add.html')
+        elif (action == 'delete' and port):
+            for saved_service in mfl.query_services(port): # Only delete it if we created it...
+                mfl.delete_service(port)
+                os.remove(mfl.avahi_service_file(saved_service))
+        local_services = mfl.query_services()
+        remote_services = mfl.avahi_browse()
+        return render_template('web/services.html', local_services=local_services, remote_services=remote_services)
 
 # Just reboot.
 @app.route('/reboot')

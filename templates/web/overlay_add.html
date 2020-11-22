@@ -1,0 +1,15 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<h1>Overlay Add Static Peer</h1>
+
+<form method="post" action="/overlay">
+<input type="hidden" name="save" value="1">
+<table>
+   <tr><td>Peer JSON</td><td><input type="text" name="peer"></td></tr>
+</table>
+<input type="submit" value="Add">
+</form>
+
+{% endblock %}

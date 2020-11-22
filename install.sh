@@ -1,9 +1,9 @@
 #!/bin/sh
 
 myname=mesh-front
-package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools"
+package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools avahi-utils"
 package_list_build="" # These will be cleaned out (if new) after install
-controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf"
+controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf /etc/avahi/services/"
 
 ###########
 # Install #
@@ -47,6 +47,7 @@ fi
 sudo usermod -a -G $myname $installuser
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
+mkdir static
 
 # Install Optional Overlay Networks
 if [ $YGGDRASIL ]; then
@@ -57,7 +58,7 @@ if [ $CJDNS ]; then
 fi
 
 # Roll everything up in a tarball for other people to download
-if [ ! -e static/mesh-front-py.tgz ]; then
+if [ ! -f static/mesh-front-py.tgz ]; then
    tar -czf static/mesh-front-py.tgz \
       --exclude=static/mesh-front-py.tgz \
       --exclude=salt.txt \
@@ -74,7 +75,7 @@ sudo apt-get clean -y
 # Change perms on and backup controlled files
 for system_file in $controlled_system_files
 do
-   if [ -e $system_file ]; then
+   if [ -f $system_file ]; then
       sudo cp $system_file $system_file.$myname-backup
    else
       sudo touch $system_file
@@ -102,6 +103,7 @@ gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo apt-key add -
 echo 'deb http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
 sudo apt-get update
 sudo apt-get install -y yggdrasil
+sudo sh -c '( yggdrasil -genconf -json > /etc/yggdrasil.conf )'
 sudo systemctl enable yggdrasil
 sudo systemctl start yggdrasil
 sudo chmod 660 /etc/yggdrasil.conf
@@ -110,7 +112,7 @@ sudo chmod 660 /etc/yggdrasil.conf
 # Download and build cjdns
 install_cjdns()
 {
-if [ ! -e static/cjdns-master.tar.gz ]
+if [ ! -f static/cjdns-master.tar.gz ]
 then
    wget https://github.com/cjdelisle/cjdns/archive/master.tar.gz -O static/cjdns-master.tar.gz
 fi
@@ -144,7 +146,7 @@ fi
 # Restore old system files
 for system_file in $controlled_system_files; do
    sudo rm $system_file
-   if [ -e $system_file.$myname-backup ]
+   if [ -f $system_file.$myname-backup ]
    then
       sudo mv $system_file.$myname-backup $system_file
    else
@@ -237,7 +239,7 @@ echo "Warning, mesh network services are still installed and enables. Run 'unins
 ########
 test_mesh_front()
 {
-python3 -m unittest -v mesh_front_lib_test.TestUtils
+python3 -m unittest -v mesh_front_lib_test
 }
 
 ########

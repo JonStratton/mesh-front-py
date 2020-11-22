@@ -1,0 +1,17 @@
+{% extends 'web/header.html' %}
+
+{% block body %}
+
+<h1>Service Add</h1>
+
+<form method="post" action="/services">
+<input type="hidden" name="save" value="1">
+<table>
+   <tr><td>Port</td><td><input type="number" name="port" min="0" max="65535" size="5"></td></tr>
+   <tr><td>Protocol</td><td><input type="text" name="protocol"></td></tr>
+   <tr><td>Text</td><td><input type="text" name="text"></td></tr>
+</table>
+<input type="submit" value="Add">
+</form>
+
+{% endblock %}

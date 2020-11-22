@@ -96,6 +96,62 @@ def system_wifi_networks(interface):
 
     return net_list
 
+###########
+# Overlay #
+###########
+
+def read_json_conf(config_file):
+    config_file_lines = []
+
+    with open(config_file) as f:
+        for line in f:
+            line = re.sub('^\s*\/\/.*$', '', line) # Remove '// Comments\n'
+            line = line.strip('\n')
+            if line:
+                config_file_lines.append(line)
+
+    # Flatten file to remove multi line '/* Comments */' comments
+    config_file_flat = ''.join(config_file_lines)
+    config_file_flat = re.sub('\s*\/\*.*\*\/\s*', '', config_file_flat)
+
+    return(json.loads(config_file_flat))
+
+def make_json_conf(config_file, config_file_json):
+    with open(config_file, 'w') as f:
+        f.write(json.dumps(config_file_json, indent=4))
+    return(0)
+
+############
+# Services #
+############
+
+def refresh_services():
+    for service in query_services():
+        make_avahi_service(service)
+    return(0)
+
+def avahi_service_file(service): # Careful now
+    port = service.get('port', 0)
+    protocol = service.get('protocol', '')
+    protocol = re.sub('\W', '', protocol)
+    return('/etc/avahi/services/%s_%s.service' % (str(port), protocol))
+
+def avahi_browse():
+    remote_services = []
+    split_col = re.compile('"*;"*')
+    # --ignore-local
+    cmd = 'avahi-browse --all --resolve --parsable --terminate'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line_bytes in p.stdout.readlines():
+        line = line_bytes.decode('utf-8').rstrip()
+        split = split_col.split(line)
+        if split[0] == '=':
+           rs = {}
+           rs['interface'], rs['spv'], rs['name'], rs['type_s'], rs['domain'], rs['avahi_hostname'], rs['ip'], rs['port'], rs['txt_record'] = split[1:]
+           remote_services.append(rs)
+
+    return(remote_services)
+
 ######
 # DB #
 ######
@@ -162,6 +218,43 @@ def user_auth(user, password_hash):
     c.execute('SELECT count(*) FROM user_settings WHERE username=? AND password_hash=?;', (user, password_hash))
     return(c.fetchone()[0])
 
+def upsert_service(service):
+    port = service.get('port', None)
+    protocol = service.get('protocol', None)
+    text = service.get('text', None)
+
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('INSERT INTO services VALUES (?, ?, ?) ON CONFLICT(port) DO UPDATE SET protocol=excluded.protocol, text=excluded.text;', (port, protocol, text) )
+    conn.commit()
+    return(0)
+
+def delete_service(port):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    c.execute('DELETE FROM services WHERE port = ?;', (port, ) )
+    conn.commit()
+    return(0)
+
+def query_services(port = None):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    if (port):
+        c.execute('SELECT port, protocol, text FROM services WHERE port = ?;', (port, ))
+    else:
+        c.execute('SELECT port, protocol, text FROM services;')
+    columns = list(map(lambda x: x[0], c.description))
+    columns_length = len(columns)
+
+    services = []
+    for row in c.fetchall():
+        service = {}
+        for col_num in range(0, columns_length):
+            service[columns[col_num]] = row[col_num]
+        services.append(service)
+
+    return(services)
+
 ##########
 # System #
 ##########
@@ -171,10 +264,10 @@ def system_debug(commands = []):
     commands_and_outputs = []
     for command in commands:
         command_and_output = {'command': command, 'output': []}
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line_bytes in p.stdout.readlines():
-            command_and_output['output'].append( line_bytes.decode('utf-8').rstrip() )
-        commands_and_outputs.append(command_and_output)
+        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True) as p:
+            for line_bytes in p.stdout.readlines():
+                command_and_output['output'].append( line_bytes.decode('utf-8').rstrip() )
+            commands_and_outputs.append(command_and_output)
     return(commands_and_outputs)
 
 def system_hostname():
@@ -266,56 +359,18 @@ def system_interface_settings(interface):
 
     return(interface_settings.get(interface, {}))
 
-########################
-# System Wifi Networks #
-########################
-    # TODO, clean this function up
-
-def system_wifi_networks(interface = None):
-    net_list = []
-
-    # Id no interface is passed in, get the first ip one
-    interface = system_interfaces('w')[0]
-
-    # If the interface isnt up, brink it up
-    if_upd = 0
-    if (system_get_interface_state(interface) != 'up'):
-        system_set_interface_state(interface, 'up')
-        if_upd = 1
-
-    network  = {}
-    split_col = re.compile('\s*:|=\s*')
-    split_first = re.compile('\s+|\(')
-    cmd = 'sudo iw %s scan' % (interface)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line_bytes in p.stdout.readlines():
-        line = line_bytes.decode('utf-8')
-
-        if line.startswith('BSS '): # New record found
-            if (network):
-                net_list.append(clean_network(network))
-                network = {}
-            split_line = split_first.split(line)
-            key = split_line[0].strip()
-            network[key] = split_line[1].strip()
-
-        else:
-            split_line = split_col.split(line)
-            key = split_line[0].strip()
-            network[key] = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
-
-    retval = p.wait
-    net_list.append(clean_network(network))
-
-    # Take down interface if it was set up
-    if (if_upd):
-        system_set_interface_state(interface, 'up')
-
-    return net_list
-
 #############
 # Templates #
 #############
+
+def make_avahi_service(service):
+    config_file = avahi_service_file(service)
+
+    template = env.get_template('avahi_app.service')
+    output_from_parsed_template = template.render(service=service)
+    with open(config_file, 'w') as f:
+        f.write(output_from_parsed_template)
+    return(0)
 
 def make_interface_config():
     config_file = '/etc/network/interfaces'
@@ -378,6 +433,7 @@ def setup_db():
     c.execute('CREATE TABLE user_settings (username text PRIMARY KEY, password_hash text);')
     c.execute('CREATE TABLE interface_settings (ipv integer, iface text, inet text, address text, netmask text, UNIQUE(ipv, iface))')
     c.execute('CREATE TABLE server_settings (key text PRIMARY KEY, value text);')
+    c.execute('CREATE TABLE services (port integer PRIMARY KEY AUTOINCREMENT NOT NULL, protocol text, text text);')
     conn.commit()
     conn.close()
     return(0)
@@ -386,6 +442,8 @@ def setup_initial_settings():
     # Set some server configs we have
     upsert_setting('listen_port', '8080')
     upsert_setting('listen_ip', '0.0.0.0')
+    if os.path.isfile('/etc/yggdrasil.conf') or os.path.isfile('/etc/cjdroute.conf'):
+       upsert_setting('has_overlay', '1')
 
     # Pull in current interface settings
     for iface in system_interfaces():

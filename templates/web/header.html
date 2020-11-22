@@ -4,14 +4,14 @@
 <a href="/settings">Settings</a> |
 <a href="/wireless">Wireless</a> |
 <a href="/network">Network</a> |
-<a href="/overlay">Overlay</a> |
+<a href="/services">Services</a> |
+{% if query_setting('has_overlay') %}<a href="/overlay">Overlay</a> |{% endif %}
 <a href="/debug">Debug</a> |
 <a href="/logout">Logout</a> |
 {% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %}
 {% endif %}
 </p>
 <hr>
-<script src="static/jquery.min.js"></script>
 <style>
 table select {
    width: 100%
