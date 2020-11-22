@@ -71,6 +71,11 @@ def wireless():
             else:
                 mfl.upsert_setting('wireless_ssid', escaped_request.get('wireless_ssid'))
                 mfl.upsert_setting('wireless_channel', escaped_request.get('wireless_channel'))
+
+            # If we dont have bat0 now, make one as default.
+            if (not mfl.query_interface_settings('bat0', 4)):
+                mfl.upsert_interface({'iface': 'bat0', 'inet': 'manual'})
+
             mfl.refresh_configs()
             mfl.upsert_setting('should_network', '1')
         settings = {}
@@ -109,7 +114,6 @@ def network():
             mfl.upsert_setting('dhcp_start', escaped_request.get('dhcp_start'))
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))
-            mfl.upsert_interface(mesh_interface)
             mfl.refresh_configs()
             mfl.upsert_setting('should_network', '')
             mfl.upsert_setting('should_reboot', '1')

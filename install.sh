@@ -239,7 +239,7 @@ echo "Warning, mesh network services are still installed and enables. Run 'unins
 ########
 test_mesh_front()
 {
-python3 -m unittest -v mesh_front_lib_test.TestUtils
+python3 -m unittest -v mesh_front_lib_test
 }
 
 ########
