@@ -109,7 +109,9 @@ def network():
                 mesh_interface['inet'] = 'manual'
             mfl.upsert_interface(mesh_interface)
 
-            mfl.upsert_setting('uplink_interface', escaped_request.get('uplink_interface'))
+            uplink_interface = escaped_request.get('uplink_interface')
+            uplink_interface = re.sub('[^0-9a-zA-Z]+', '', uplink_interface)
+            mfl.upsert_setting('uplink_interface', uplink_interface)
             mfl.upsert_setting('dhcp_start', escaped_request.get('dhcp_start'))
             mfl.upsert_setting('dhcp_end', escaped_request.get('dhcp_end'))
             mfl.upsert_setting('dhcp', escaped_request.get('dhcp'))

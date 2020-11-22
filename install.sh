@@ -1,9 +1,9 @@
 #!/bin/sh
 
 myname=mesh-front
-package_list="batctl python3-flask iptables-persistent dnsmasq iw ifupdown wireless-tools avahi-utils"
+package_list="batctl python3-flask iptables-persistent dnsmasq iw wireless-tools avahi-utils"
 package_list_build="" # These will be cleaned out (if new) after install
-controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf /etc/avahi/services/"
+controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/iptables/rules.v6 /etc/hosts /etc/hostname /etc/dnsmasq.d/mesh-front-dnsmasq.conf /etc/sysctl.d/mesh-front-sysctl.conf /etc/avahi/services/"
 
 ###########
 # Install #

@@ -24,9 +24,11 @@ def refresh_configs():
     if (uplink_interface):
         system_clear_iptables()
         system_bridge_interfaces('bat0', uplink_interface)
+        system_bridge_interfaces('bat0', uplink_interface, 6)
         make_sysctl_conf()
     else: # Clear the bridge otherwise
         system_clear_iptables()
+        system_clear_iptables(6)
         clear_sysctl_conf()
 
     # DHCP Server if serving internet
@@ -304,26 +306,28 @@ def system_interfaces(if_type = None):
     return(if_list)
 
 # Bridge Interfaces if sharing.
-def system_bridge_interfaces(w_iface, e_iface):
-    w_iface = re.sub('[^0-9a-zA-Z]+', '', w_iface)
-    e_iface = re.sub('[^0-9a-zA-Z]+', '', e_iface)
-    cmds = [ 'sudo iptables -t nat -A POSTROUTING -o %s -j MASQUERADE' % (e_iface),
-            'sudo iptables -A FORWARD -i %s -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT' % (e_iface, w_iface),
-            'sudo iptables -A FORWARD -i %s -o %s -j ACCEPT' % (w_iface, e_iface),
-            'sudo iptables-save > /etc/iptables/rules.v4' ]
+def system_bridge_interfaces(mesh_interface, uplink_interface, ipv = 4):
+    iptables = 'iptables' if (ipv == 4) else 'ip6tables'
+    rules = 'rules.v4' if (ipv == 4) else 'rules.v6'
+    cmds = [ 'sudo %s -t nat -A POSTROUTING -o %s -j MASQUERADE' % (iptables, uplink_interface),
+            'sudo %s -A FORWARD -i %s -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT' % (iptables, uplink_interface, mesh_interface),
+            'sudo %s -A FORWARD -i %s -o %s -j ACCEPT' % (iptables, mesh_interface, uplink_interface),
+            'sudo %s-save > /etc/iptables/%s' % (iptables, rules) ]
     for cmd in cmds:
         subprocess.call(cmd, shell=True, stdout=None, stderr=None)
     return(0)
 
-def system_clear_iptables():
-    cmds = [ 'sudo iptables -P INPUT ACCEPT',
-            'sudo iptables -P FORWARD ACCEPT',
-            'sudo iptables -P OUTPUT ACCEPT',
-            'sudo iptables -t nat -F',
-            'sudo iptables -t mangle -F',
-            'sudo iptables -F',
-            'sudo iptables -X',
-            'sudo iptables-save > /etc/iptables/rules.v4' ]
+def system_clear_iptables(ipv = 4):
+    iptables = 'iptables' if (ipv == 4) else 'ip6tables'
+    rules = '/etc/iptables/rules.v4' if (ipv == 4) else '/etc/iptables/rules.v6'
+    cmds = [ 'sudo %s -P INPUT ACCEPT' % (iptables),
+            'sudo %s -P FORWARD ACCEPT' % (iptables),
+            'sudo %s -P OUTPUT ACCEPT' % (iptables),
+            'sudo %s -t nat -F' % (iptables),
+            'sudo %s -t mangle -F' % (iptables),
+            'sudo %s -F' % (iptables),
+            'sudo %s -X' % (iptables),
+            'sudo %s-save > /etc/iptables/%s' % (iptables, rules) ]
     for cmd in cmds:
         subprocess.call(cmd, shell=True, stdout=None, stderr=None)
     return(0)
@@ -414,6 +418,7 @@ def make_sysctl_conf():
     config_file = '/etc/sysctl.d/mesh-front-sysctl.conf'
     with open(config_file, 'w') as f:
         f.write('net.ipv4.ip_forward = 1')
+        f.write('net.ipv6.ip_forward = 1')
     return(0)
 
 # Clear it with an empty files, so we can keep its permissions
