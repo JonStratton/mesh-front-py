@@ -131,10 +131,11 @@ def refresh_services():
     return(0)
 
 def avahi_service_file(service): # Careful now
-    port = int(service.get('port', 0))
+    port = service.get('port', '0')
+    port = re.sub('\D', '', port)
     protocol = service.get('protocol', '')
-    protocol = re.sub('[\W_]+', '', protocol)
-    return('/etc/avahi/services/%s_%s.service' % (str(port), protocol))
+    protocol = re.sub('\W', '', protocol)
+    return('/etc/avahi/services/%s_%s.service' % (port, protocol))
 
 def avahi_browse():
     remote_services = []
@@ -264,10 +265,10 @@ def system_debug(commands = []):
     commands_and_outputs = []
     for command in commands:
         command_and_output = {'command': command, 'output': []}
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line_bytes in p.stdout.readlines():
-            command_and_output['output'].append( line_bytes.decode('utf-8').rstrip() )
-        commands_and_outputs.append(command_and_output)
+        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True) as p:
+            for line_bytes in p.stdout.readlines():
+                command_and_output['output'].append( line_bytes.decode('utf-8').rstrip() )
+            commands_and_outputs.append(command_and_output)
     return(commands_and_outputs)
 
 def system_hostname():
@@ -358,53 +359,6 @@ def system_interface_settings(interface):
                interface_settings[temp_iface][split[2]] = split[3]
 
     return(interface_settings.get(interface, {}))
-
-########################
-# System Wifi Networks #
-########################
-    # TODO, clean this function up
-
-def system_wifi_networks(interface = None):
-    net_list = []
-
-    # Id no interface is passed in, get the first ip one
-    interface = system_interfaces('w')[0]
-
-    # If the interface isnt up, brink it up
-    if_upd = 0
-    if (system_get_interface_state(interface) != 'up'):
-        system_set_interface_state(interface, 'up')
-        if_upd = 1
-
-    network  = {}
-    split_col = re.compile('\s*:|=\s*')
-    split_first = re.compile('\s+|\(')
-    cmd = 'sudo iw %s scan' % (interface)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line_bytes in p.stdout.readlines():
-        line = line_bytes.decode('utf-8')
-
-        if line.startswith('BSS '): # New record found
-            if (network):
-                net_list.append(clean_network(network))
-                network = {}
-            split_line = split_first.split(line)
-            key = split_line[0].strip()
-            network[key] = split_line[1].strip()
-
-        else:
-            split_line = split_col.split(line)
-            key = split_line[0].strip()
-            network[key] = re.sub(r'^"|"$', '', ':'.join( split_line[1:] ).strip() )
-
-    retval = p.wait
-    net_list.append(clean_network(network))
-
-    # Take down interface if it was set up
-    if (if_upd):
-        system_set_interface_state(interface, 'up')
-
-    return net_list
 
 #############
 # Templates #
