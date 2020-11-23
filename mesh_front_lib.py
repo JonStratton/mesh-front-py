@@ -25,6 +25,7 @@ def refresh_configs():
     # Bridge Interfaces if sharing internet
     if (uplink_interface):
         system_clear_iptables()
+        system_clear_iptables(6)
         system_bridge_interfaces('bat0', uplink_interface)
         system_bridge_interfaces('bat0', uplink_interface, 6)
         make_sysctl_conf()
@@ -419,8 +420,8 @@ def clear_dnsmasq_conf():
 def make_sysctl_conf():
     config_file = '/etc/sysctl.d/mesh-front-sysctl.conf'
     with open(config_file, 'w') as f:
-        f.write('net.ipv4.ip_forward = 1')
-        f.write('net.ipv6.ip_forward = 1')
+        f.write("net.ipv4.ip_forward = 1\n")
+        f.write("net.ipv6.ip_forward = 1\n")
     return(0)
 
 # Clear it with an empty files, so we can keep its permissions
