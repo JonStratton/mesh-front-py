@@ -16,7 +16,7 @@ It takes inspiration from HSMM-pi (https://github.com/urlgrey/hsmm-pi) and the d
 ## Pre install check
 Most wifi devices support mesh networking. You can double check this by running the fillowing command and searching for "Mesh" or "IBSS".
 
-    sudo wi list
+    sudo iw list
 
 ## How to install
 Before installing on the system, you should test it out under a user account (with generic sudo access). 
