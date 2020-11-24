@@ -11,13 +11,11 @@ controlled_system_files="/etc/network/interfaces /etc/iptables/rules.v4 /etc/ipt
 install_mesh_front()
 {
 # Build lists of packages and files
-if [ $YGGDRASIL = 1 ]; then
+if [ $YGGDRASIL -a $YGGDRASIL = 1 ]; then
    package_list="$package_list dirmngr"
-   controlled_system_files="$controlled_system_files /etc/yggdrasil.conf"
 fi
-if [ $CJDNS = 1 ]; then
+if [ $CJDNS -a $CJDNS = 1 ]; then
    package_list_build="$package_list_build build-essential nodejs python2.7"
-   controlled_system_files="$controlled_system_files /etc/cjdroute.conf"
 fi
 
 # Install Deps
@@ -100,13 +98,17 @@ install_yggdrasil()
 # https://yggdrasil-network.github.io/installation-linux-deb.html
 gpg --fetch-keys https://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/key.txt
 gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo apt-key add -
+gpg --batch --delete-keys 569130E8CA20FBC4CB3FDE555898470A764B32C9
 echo 'deb http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
 sudo apt-get update
 sudo apt-get install -y yggdrasil
+
 sudo sh -c '( yggdrasil -genconf -json > /etc/yggdrasil.conf )'
+sudo chown root:$myname /etc/yggdrasil.conf
+sudo chmod 660 /etc/yggdrasil.conf
+
 sudo systemctl enable yggdrasil
 sudo systemctl start yggdrasil
-sudo chmod 660 /etc/yggdrasil.conf
 }
 
 # Download and build cjdns
@@ -122,8 +124,11 @@ cd cjdns-master
 sudo mv cjdroute /usr/bin/cjdroute
 sudo cp contrib/systemd/cjdns.service /etc/systemd/system/
 cd ..
-sudo sh -c '(umask 007 && /usr/bin/cjdroute --genconf > /etc/cjdroute.conf )'
 rm -rf cjdns-master
+
+sudo sh -c '(umask 007 && /usr/bin/cjdroute --genconf > /etc/cjdroute.conf )'
+sudo chown root:$myname /etc/cjdroute.conf
+sudo chmod 660 /etc/cjdroute.conf
 
 sudo systemctl daemon-reload
 sudo systemctl start cjdns.service
@@ -175,7 +180,9 @@ uninstall_yggdrasil()
 {
 sudo apt-get remove --purge -y yggdrasil
 sudo rm /etc/apt/sources.list.d/yggdrasil.list
+sudo apt-key del 569130E8CA20FBC4CB3FDE555898470A764B32C9
 sudo apt-get update
+sudo rm /etc/yggdrasil.conf
 }
 
 uninstall_cjdns()
@@ -184,7 +191,6 @@ sudo systemctl disable cjdns.service
 sudo rm /etc/systemd/system/cjdns.service
 sudo rm /usr/bin/cjdroute
 sudo rm /etc/cjdroute.conf
-sudo rm /etc/cjdroute.conf.mesh-front-backup
 }
 
 ##################
