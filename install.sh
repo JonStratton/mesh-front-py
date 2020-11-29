@@ -45,7 +45,6 @@ fi
 sudo usermod -a -G $myname $installuser
 sudo cp install/mesh-front-sudoers /etc/sudoers.d/mesh-front-sudoers
 sudo chmod 440 /etc/sudoers.d/mesh-front-sudoers
-mkdir static
 
 # Install Optional Overlay Networks
 if [ $YGGDRASIL ]; then

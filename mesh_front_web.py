@@ -210,7 +210,7 @@ def do_admin_login():
         password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
         if (mfl.user_auth(request.form['username'], password_hash)):
             session['logged_in'] = True
-            return settings()
+            return home()
     return render_template('web/login.html')
 
 @app.route('/logout')
