@@ -9,6 +9,8 @@
 <a href="/debug">Debug</a> |
 <a href="/logout">Logout</a> |
 {% if query_setting('should_reboot') %}<b>{% endif %}<a href="/reboot">Reboot</a>{% if query_setting('should_reboot') %}</b>{% endif %}
+{% else %}
+<a href="/login">Login</a>
 {% endif %}
 </p>
 <hr>

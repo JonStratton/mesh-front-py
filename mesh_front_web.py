@@ -27,6 +27,18 @@ def escape_request(request):
         escaped_request[escape(key)] = escape(request.get(key))
     return(escaped_request)
 
+@app.route('/static/mesh-front-py.tgz')
+def static_meshfrontpy():
+    return send_from_directory('', 'static/mesh-front-py.tgz')
+
+@app.route('/static/openwrt_notes.html')
+def static_openwrtnotes():
+    return send_from_directory('', 'static/openwrt_notes.html')
+
+@app.route('/static/README.md')
+def static_readme():
+    return send_from_directory('', 'README.md')
+
 @app.route('/debug')
 def debug():
     if not session.get('logged_in'):
@@ -198,7 +210,7 @@ def do_admin_login():
         password_hash = mfl.hash_password(request.form['password'], Salt).hexdigest()
         if (mfl.user_auth(request.form['username'], password_hash)):
             session['logged_in'] = True
-            return settings()
+            return home()
     return render_template('web/login.html')
 
 @app.route('/logout')
@@ -208,7 +220,7 @@ def logout():
 
 @app.route('/')
 def home():
-    return do_admin_login()
+    return render_template('web/index.html')
 
 def first_run():
     mfl.setup_db()
