@@ -3,16 +3,31 @@
 <body>
 <h2>Adding an OpenWRT router to the Mesh</h2>
 <p>Notes based on the <a href="https://openwrt.org/docs/guide-user/network/wifi/mesh/batman">OpenWRT guide</a> and the <a href="https://www.open-mesh.org/projects/batman-adv/wiki/Batman-adv-openwrt-config">Batman-adv guide</a>.</p>
+
+<h3>0. Connect node to the internet.</h3>
+<p>In most cases routers have both a single “WAN” and one or more “LAN” ports. Generally OpenWRT acts as a DHCP client on the WAN port, and a DHCP server on the LAN ports. If we want to attach our OpenWRT node to our mesh network, we need to make sure our OpenWRT server on our LAN ports doesn't conflict with either our home wired network (example, 192.168.1.*) or our mesh network (example, 192.168.199.*). So in this case I will use 192.168.2.* for my OpenWRT DHCP server. This can either be done in the gui by “Network” -> “Interfaces”, editing “LAN”, and changing the IPv4 address to “192.168.2.1”. As this will change the IP address of the router, make sure you hit the “Apply Unchecked” button under “Save & Apply”. Otherwise these changes will not be save.</p>
+<p>This can also be done by simply editing “/etc/config/network” and changing the “ipaddr” for “lan”:</p>
+<pre><code>
+config interface 'lan'
+        option type 'bridge'
+        option ifname 'eth0'
+        option proto 'static'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+        option ipaddr <b>'192.168.2.1'</b>
+</code></pre>
+
 <h3>1. Install batman-adv software.</h3>
 <p>Either ssh into the node and install from command line:<p>
 <pre><code>
 opkg update
-opkg install kmod-batman-adv
 opkg install batctl-full
+opkg install kmod-batman-adv
 </code></pre>
 <p>Or logging on to the gui and going to “System” -> “Software” menu and hitting the “Update lists...” button. Then “Install” button for “kmod-batman-adv” and “batctl-full”.</p>
+
 <h3>2. Add a Wireless Mesh interface.</h3>
-<p>If you haven't turned wireless on, a simple way to do this is to log into the GUI and go to “Network” -> “Wireless” and turn it on there. Otherwise it will need to be turned on / configured when editing the wireless interface.</p>
+<p>If you haven't turned wireless on, a simple way to do this is to log into the GUI and go to “Network” -> “Wireless” and turn it on there. Otherwise it will need to be turned on / configured when editing the wireless interface by removing the "option disabled '1'" line.</p>
 <p>Edit “/etc/config/wireless”. Modify the wireless device to to be on the channel your mesh is on. Then add a mesh interface where the “ssid” matches that of your mesh network:</p>
 <pre><code>
 config wifi-device 'radio0'
@@ -32,18 +47,8 @@ config wifi-iface 'mesh0'
         option ifname 'mesh0'
 </b>
 </code></pre>
+
 <h3>3. Edit the network settings.</h3>
-<p>In most cases routers have both a single “WAN” and one or more “LAN” ports. Generally OpenWRT acts as a DHCP client on the WAN port, and a DHCP server on the LAN ports. If we want to attach our OpenWRT node to our mesh network, we need to make sure our OpenWRT server on our LAN ports doesn't conflict with either our home wired network (example, 192.168.1.*) or our mesh network (example, 192.168.199.*). So in this case I will use 192.168.2.* for my OpenWRT DHCP server. This can either be done in the gui by “Network” -> “Interfaces”, editing “LAN”, and changing the IPv4 address to “192.168.2.1”. As this will change the IP address of the router, make sure you hit the “Apply Unchecked” button under “Save & Apply”. Otherwise these changes will not be save.</p>
-<p>This can also be done by simply editing “/etc/config/network” and changing the “ipaddr” for “lan”:</p>
-<pre><code>
-config interface 'lan'
-        option type 'bridge'
-        option ifname 'eth0'
-        option proto 'static'
-        option netmask '255.255.255.0'
-        option ip6assign '60'
-        option ipaddr <b>'192.168.2.1'</b>
-</code></pre>
 <p>Now we will need to add out batman interface to the network and possibly get an IPv4 address from our mesh network. So edit “/etc/config/network” and add the hardware interface (bat0), the configure the mesh interface (nwi_mesh0), and, in this case, configure the “bat0” interface to act as a DHCP client:</p>
 <pre><code>
 config interface 'bat0'
@@ -55,12 +60,25 @@ config interface 'nwi_mesh0'
         option proto 'batadv_hardif'
         option master 'bat0'
 
-config interface 'bat0_lan'
+config interface 'bat0_wan'
         option ifname 'bat0'
         option proto 'dhcp'
 </code></pre>
 <p>Once this is done we can save and reboot. When logging back on to the OpenWRT (dont forget the new IP address [192.168.2.1]!), we should now be able to see neighbors with the “batctl n” command.</p>
+
 <h3>4. Adding Bat0 to the Firewall</h3>
-<p>Our OpenWRT node should now be meshed with our mesh network. However, to make it useful to the clients connected to the router's LAN ports, we need to add “bat0_lan” to a zone. As we want to treat this like we would treat an external network plugged into our WAN port, it might be a good idea to treat the mesh network as a WAN interface. This can be done in the GUI by “Network” -> “Interfaces” and editing “BAT0_LAN”. Under the “Firewall Settings” tab, select “wan”.</p>
+<p>Our OpenWRT node should now be meshed with our mesh network. However, to make it useful to the clients connected to the router's LAN ports, we need to add “bat0_lan” to a zone. As we want to treat this like we would treat an external network plugged into our WAN port, it might be a good idea to treat the mesh network as a WAN interface. This can be done in the GUI by “Network” -> “Interfaces” and editing “BAT0_WAN”. Under the “Firewall Settings” tab, select “wan”.</p>
+<p>This can also be done by simply adding "bat0_wan" to the "wan" zone in /etc/config/firewall:</p>
+<pre><code>
+config zone
+	option name 'wan'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+	option masq '1'
+	option mtu_fix '1'
+	option network 'wan wan6 <b>bat0_wan</b>'
+</code></pre>
+
 </body>
 </html>
