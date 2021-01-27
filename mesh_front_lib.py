@@ -14,9 +14,7 @@ env = Environment(loader=FileSystemLoader('templates'))
     # Writes all the system files
 
 def refresh_configs():
-    mesh_interface = query_setting('mesh_interface')
     uplink_interface = query_setting('uplink_interface')
-    mesh_interface = re.sub('[^0-9a-zA-Z]+', '', mesh_interface)
     uplink_interface = re.sub('[^0-9a-zA-Z]+', '', uplink_interface)
 
     # Make interfaces Files
