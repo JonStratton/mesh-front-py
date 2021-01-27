@@ -70,12 +70,13 @@ def user_choose(wireless_interface_default, wireless_ssid_default, wireless_chan
     ip_address, netmask, dhcp_start, dhcp_end = '', '', '', ''
     ip_address_default, netmask_default, dhcp_start_default, dhcp_end_default = '192.168.200.1', '255.255.255.0', '192.168.200.100', '192.168.200.200'
     if (dhcp == 'server'):
+        mesh_inet = 'static'
         ip_address = input('IP Address(%s): ' % ip_address_default)
         if(not ip_address):
             ip_address = ip_address_default
 
         netmask = input('Netmask(%s): ' % netmask_default)
-        if(not dhcp):
+        if(not netmask):
             netmask = netmask_default
 
         dhcp_start = input('IP Start(%s): ' % dhcp_start_default)

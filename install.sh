@@ -81,12 +81,6 @@ do
    sudo chmod g+w $system_file
 done
 
-# Turn off Network Manager if its installed
-if [ -d '/etc/NetworkManager' ]; then
-   sudo systemctl stop NetworkManager
-   sudo systemctl disable NetworkManager
-fi
-
 # Hint so we dont have to log out maybe
 echo "Run the following command: newgrp $myname"
 }
@@ -167,12 +161,6 @@ sudo apt-get clean -y
 # Delete group and sudo access
 sudo groupdel $myname
 sudo rm /etc/sudoers.d/mesh-front-sudoers
-
-# Enable NetworkManager if installed
-if [ -d '/etc/NetworkManager' ]; then
-   sudo systemctl start NetworkManager
-   sudo systemctl enable NetworkManager
-fi
 }
 
 uninstall_yggdrasil()
