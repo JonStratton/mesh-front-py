@@ -342,25 +342,33 @@ def system_interface_settings(interface):
     interface_settings = {}
     temp_iface = ''
     split_col = re.compile('\s+')
-    with open('/etc/network/interfaces', 'r') as f:
-        for line in f:
-            line = line.replace('\n', '').strip()
-            if (not line) or (line.startswith('#')):
-               continue
-            elif (line.startswith('auto ')) or (line.startswith('source ')) or (line.startswith('allow-hotplug ')):
-               continue # I just dont care about these right now
 
-            split = split_col.split(line)
-            split[0] = split[0].replace('-', '_') # Remove the dashes for sqlite col name
-            if ( split[0] == 'iface' ):
-               temp_iface = split[1]
-               interface_settings[temp_iface] = {}
-            elif ( not temp_iface ):
-               continue # Keep going until I get my first iface
+    filesToCheck = ['/etc/network/interfaces']
+    if os.path.isfile('/etc/network/interfaces.d/%s.iface' % interface):
+        filesToCheck.append('/etc/network/interfaces.d/%s.iface' % interface)
+
+    for fileToCheck in filesToCheck:
+        temp_iface = ''
+        with open(fileToCheck, 'r') as f:
+            for line in f:
+                line = line.replace('\n', '').strip()
+                if (not line) or (line.startswith('#')):
+                   continue
+                elif (line.startswith('auto ')) or (line.startswith('source ')) or (line.startswith('allow-hotplug ')):
+                   continue # I just dont care about these right now
+
+                split = split_col.split(line)
+                split[0] = split[0].replace('-', '_') # Remove the dashes for sqlite col name
+                if ( split[0] == 'iface' ):
+                   temp_iface = split[1]
+                   interface_settings[temp_iface] = {}
+                elif ( not temp_iface ):
+                   continue # Keep going until I get my first iface
  
-            interface_settings[temp_iface][split[0]] = split[1]
-            if (len(split) > 3):
-               interface_settings[temp_iface][split[2]] = split[3]
+                # TODO, work better
+                interface_settings[temp_iface][split[0]] = split[1]
+                if (len(split) > 3):
+                   interface_settings[temp_iface][split[2]] = split[3]
 
     return(interface_settings.get(interface, {}))
 

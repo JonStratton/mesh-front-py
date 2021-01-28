@@ -6,7 +6,9 @@ import mesh_front_lib as mfl
 
 # Defaults
 root     = os.path.dirname(os.path.realpath(__file__))
+Salt     = mfl.salt(os.path.join(root, 'salt.txt'))
 FirstRun = not os.path.isfile(os.path.join(root, 'db.sqlite3'))
+NewPassword = mfl.randomword(10) if (FirstRun) else ''
 
 def get_defaults():
     mesh_networks = []
@@ -99,6 +101,10 @@ def first_run():
 if (__name__ == '__main__'):
     if (FirstRun):
         first_run()
+    if (NewPassword):
+        password_hash = mfl.hash_password(NewPassword, Salt).hexdigest()
+        mfl.upsert_user('admin', password_hash)
+        print("New Password Set. Log in with user 'admin' and password '%s'.\n" % NewPassword)
     wireless_interface_default, wireless_ssid_default, wireless_channel_default, uplink_interface_default = get_defaults()
     wireless_interface, ssid, channel, uplink_interface, dhcp, mesh_inet, ip_address, netmask, dhcp_start, dhcp_end = user_choose(wireless_interface_default, wireless_ssid_default, wireless_channel_default, uplink_interface_default)
 
