@@ -49,21 +49,21 @@ def get_defaults():
     return(wireless_interface_default, wireless_ssid_default, wireless_channel_default, uplink_interface_default)
 
 def user_choose(wireless_interface_default, wireless_ssid_default, wireless_channel_default, uplink_interface_default):
-    wireless_interface = input('Wireless Interfaces(%s): ' % wireless_interface_default)
+    wireless_interface = input('Wireless Interfaces(Default: %s): ' % wireless_interface_default)
     if(not wireless_interface):
         wireless_interface = wireless_interface_default
 
-    wireless_ssid = input('Wireless ESSID(%s): ' % wireless_ssid_default)
+    wireless_ssid = input('Wireless ESSID(Default: %s): ' % wireless_ssid_default)
     if(not wireless_ssid):
         wireless_ssid = wireless_ssid_default
 
-    wireless_channel = input('Wireless Channel(%s): ' % wireless_channel_default)
+    wireless_channel = input('Wireless Channel(Default: %s): ' % wireless_channel_default)
     if(not wireless_channel):
         wireless_channel = wireless_channel_default
 
-    uplink_interface = input('Act as Internet Uplink on(%s): ' % uplink_interface_default)
-    if(not uplink_interface):
-        uplink_interface = uplink_interface_default
+    uplink_interface = input('Act as Internet Uplink on(No default): ')
+    #if(not uplink_interface):
+    #    uplink_interface = uplink_interface_default
 
     dhcp = input('Act as DHCP; server, client, off: ')
     mesh_inet = 'manual'

@@ -1,6 +1,8 @@
 # Created by mesh-front-py
 # Moved to /etc/network/interfaces
 
+source /etc/network/interfaces.d/*
+
 auto lo
 iface lo inet loopback
 
