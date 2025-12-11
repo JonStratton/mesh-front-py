@@ -1,4 +1,6 @@
 # mesh-front-py
+This project has moved. To get the latest version, pull from https://codeberg.org/JonStratton/mesh-front-py
+
 mesh-front-pi is basically a flask front-end for some command line mesh networking configurations. Basically, any old Debian based Laptop or single board computer you have laying around should be easy to turn into a mesh node with very little work or knowledge of mesh networking software. And if you dont like it, you should be able to remove it and have a working system without doing an entire reinstall. 
 
 It takes inspiration from HSMM-pi (https://github.com/urlgrey/hsmm-pi) and the defunct "Project Byzantium" project. 
